@@ -7,20 +7,20 @@ import SleepScoreBanner from '@/components/sleep/SleepScoreBanner';
 import MainSleepForm from '@/components/sleep/MainSleepForm';
 import NapsList from '@/components/sleep/NapsList';
 import SleepHistoryGrid from '@/components/sleep/SleepHistoryGrid';
-import SleepSettingsModal from '@/components/sleep/SleepSettingsModal';
 import LogNapModal from '@/components/sleep/LogNapModal';
+import SleepSettingsModal from '@/components/sleep/SleepSettingsModal';
 import {
-  getSleepEntry,
-  getNaps,
   getSleepSettings,
+  saveSleepSettings,
+  getSleepEntry,
   saveSleepEntry,
+  getNaps,
   saveNap,
   deleteNap,
-  saveSleepSettings,
   getSleepHistory,
 } from '@/lib/storage';
 import { calculateSleepQuality } from '@/lib/sleep-calc';
-import { NapEntry, SleepEntry, SleepQualityBreakdown, SleepSettings } from '@/types';
+import { SleepEntry, NapEntry, SleepSettings, SleepQualityBreakdown } from '@/types';
 import { Moon, Settings as SettingsIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -173,21 +173,21 @@ export default function SleepPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2.5">
-            <Moon className="w-6 h-6 text-indigo-400" />
-            <span>Sleep & Recovery Tracker</span>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2.5">
+            <Moon className="w-6 h-6 text-[#2E9C82] dark:text-[#8FE0CE]" />
+            <span>Sleep & Recovery Architecture</span>
           </h1>
-          <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
-            Night sleep quality algorithm with circadian alignment and nap penalty heuristic.
+          <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans">
+            Circadian alignment, duration weighting, and penalty-calibrated recovery algorithms.
           </p>
         </div>
 
         <button
           onClick={() => setShowSettingsModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738]/60 hover:border-slate-600 text-slate-300 hover:text-[#1C1917] dark:text-[#F8FAFC] transition-all cursor-pointer w-fit"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] hover:border-[#D9551F] dark:hover:border-[#FF7A47] text-[#14181B] dark:text-[#E7ECEC] transition-all cursor-pointer w-fit"
         >
-          <SettingsIcon className="w-4 h-4 text-[#1E826C] dark:text-[#2DD4BF]" />
-          <span>Algorithm Settings</span>
+          <SettingsIcon className="w-4 h-4 text-[#2E9C82] dark:text-[#8FE0CE]" />
+          <span>Algorithm Parameters</span>
         </button>
       </div>
 

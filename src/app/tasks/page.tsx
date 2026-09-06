@@ -63,7 +63,7 @@ export default function TasksPage() {
     loadTasks();
   }, [loadTasks]);
 
-  // Week navigation
+  // Navigate weeks
   const handlePrevWeek = () => {
     const prev = subWeeks(currentMonday, 1);
     setSelectedDate(format(prev, 'yyyy-MM-dd'));
@@ -74,224 +74,225 @@ export default function TasksPage() {
     setSelectedDate(format(next, 'yyyy-MM-dd'));
   };
 
-  const handleThisWeek = () => {
+  const handleJumpToToday = () => {
     setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
   };
 
-  // Add Task
-  const handleCreateTask = async (
-    title: string,
-    notes: string,
-    day: DayOfWeek,
-    priority: TaskPriority | null
-  ) => {
-    const dayIndex = DAYS_OF_WEEK.indexOf(day);
-    const concreteDate = format(addDays(currentMonday, dayIndex), 'yyyy-MM-dd');
-
-    const newTask = await saveTask({
-      title,
-      notes: notes || null,
-      day_of_week: day,
-      week_start_date: weekStartDateStr,
-      date: concreteDate,
-      priority,
-      is_done: false,
-    });
-
-    setTasks((prev) => [...prev, newTask]);
-  };
-
-  // Toggle done
-  const handleToggleDone = async (id: string, is_done: boolean) => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, is_done } : t)));
-    await toggleTaskDone(id, is_done);
+  // Toggle task done
+  const handleToggleDone = async (task: Task) => {
+    await toggleTaskDone(task.id, !task.is_done);
+    loadTasks();
   };
 
   // Delete task
-  const handleDeleteTask = async (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
-    await deleteTask(id);
+  const handleDeleteTask = async (task: Task) => {
+    if (confirm(`Delete task "${task.title}"?`)) {
+      await deleteTask(task.id);
+      loadTasks();
+    }
   };
 
-  // Move task to another day
-  const handleMoveDay = async (taskId: string, targetDay: DayOfWeek) => {
-    const task = tasks.find((t) => t.id === taskId);
-    if (!task) return;
+  // Move task to a different day
+  const handleMoveDay = async (task: Task, newDay: DayOfWeek) => {
+    const dayIndex = DAYS_OF_WEEK.indexOf(newDay);
+    const newDate = format(addDays(currentMonday, dayIndex), 'yyyy-MM-dd');
 
-    const targetDayIndex = DAYS_OF_WEEK.indexOf(targetDay);
-    const newConcreteDate = format(addDays(currentMonday, targetDayIndex), 'yyyy-MM-dd');
-
-    const updatedTask = {
+    await saveTask({
       ...task,
-      day_of_week: targetDay,
-      date: newConcreteDate,
-    };
-
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? updatedTask : t)));
-    await saveTask(updatedTask);
+      day_of_week: newDay,
+      date: newDate,
+    });
+    loadTasks();
   };
 
-  // Open modal with preselected day
-  const handleOpenAdd = (day: DayOfWeek) => {
+  // Open add modal for specific day
+  const handleOpenAddForDay = (day: DayOfWeek) => {
     setModalDefaultDay(day);
     setShowAddModal(true);
   };
 
-  // Weekly Stats
-  const completedCount = tasks.filter((t) => t.is_done).length;
-  const totalCount = tasks.length;
-  const completionPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  // Save new task
+  const handleSaveNewTask = async (taskData: {
+    title: string;
+    notes?: string | null;
+    priority?: TaskPriority | null;
+    day_of_week: DayOfWeek;
+  }) => {
+    const dayIndex = DAYS_OF_WEEK.indexOf(taskData.day_of_week);
+    const taskDate = format(addDays(currentMonday, dayIndex), 'yyyy-MM-dd');
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+    await saveTask({
+      title: taskData.title,
+      notes: taskData.notes || null,
+      priority: taskData.priority || null,
+      day_of_week: taskData.day_of_week,
+      week_start_date: weekStartDateStr,
+      date: taskDate,
+    });
+
+    setShowAddModal(false);
+    loadTasks();
+  };
+
+  // Group tasks by day
+  const tasksByDay = useMemo(() => {
+    const grouped: Record<DayOfWeek, Task[]> = {
+      Monday: [],
+      Tuesday: [],
+      Wednesday: [],
+      Thursday: [],
+      Friday: [],
+      Saturday: [],
+      Sunday: [],
+    };
+
+    tasks.forEach((t) => {
+      if (grouped[t.day_of_week]) {
+        if (!hideCompleted || !t.is_done) {
+          grouped[t.day_of_week].push(t);
+        }
+      }
+    });
+
+    return grouped;
+  }, [tasks, hideCompleted]);
+
+  // Overall week stats
+  const totalCount = tasks.length;
+  const completedCount = tasks.filter((t) => t.is_done).length;
+  const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
     <div className="space-y-6">
-      {/* Header with Week Switcher */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2.5">
-            <Kanban className="w-6 h-6 text-[#1E826C] dark:text-[#2DD4BF]" />
-            <span>Weekly Kanban Board</span>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2.5">
+            <Kanban className="w-6 h-6 text-[#2E9C82] dark:text-[#8FE0CE]" />
+            <span>Weekly Operations Matrix</span>
           </h1>
-          <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
-            Full 7-day Monday through Sunday workflow. Move cards between days with zero friction.
+          <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans">
+            7-day execution board with priority tags and workflow rebalancing.
           </p>
         </div>
 
-        {/* Week Switcher Controls */}
-        <div className="flex items-center gap-2 bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors p-1.5 rounded-2xl shadow-lg">
-          <button
-            onClick={handlePrevWeek}
-            title="Previous Week"
-            className="p-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-[#57534E] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC] transition-colors cursor-pointer border border-slate-700/40"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center gap-2 px-2 text-xs font-semibold text-slate-200">
-            <Calendar className="w-3.5 h-3.5 text-[#1E826C] dark:text-[#2DD4BF]" />
-            <span>
-              {format(currentMonday, 'MMM d')} – {format(weekEndDate, 'MMM d, yyyy')}
-            </span>
-          </div>
-
-          <button
-            onClick={handleNextWeek}
-            title="Next Week"
-            className="p-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-[#57534E] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC] transition-colors cursor-pointer border border-slate-700/40"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={handleThisWeek}
-            className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 ml-1 transition-all cursor-pointer"
-          >
-            This Week
-          </button>
-        </div>
-      </div>
-
-      {/* Metric Strip & Filter */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors p-4 rounded-3xl">
-        <div className="flex items-center gap-6 text-xs">
-          <div>
-            <span className="text-[#78716C] dark:text-[#94A3B8]">Total Tasks: </span>
-            <span className="font-bold text-[#1C1917] dark:text-[#F8FAFC] text-sm">{totalCount}</span>
-          </div>
-          <div>
-            <span className="text-[#78716C] dark:text-[#94A3B8]">Completed: </span>
-            <span className="font-bold text-emerald-400 text-sm">{completedCount}</span>
-          </div>
-          <div>
-            <span className="text-[#78716C] dark:text-[#94A3B8]">Progress: </span>
-            <span className="font-bold text-[#1E826C] dark:text-[#2DD4BF] text-sm">{completionPct}%</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
+        {/* Controls */}
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setHideCompleted(!hideCompleted)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
               hideCompleted
-                ? 'bg-cyan-950/40 text-cyan-300 border-cyan-800/60'
-                : 'bg-slate-800/40 text-[#78716C] dark:text-[#94A3B8] border-slate-700/40 hover:text-slate-200'
+                ? 'bg-[#2E9C82]/15 border-[#2E9C82] text-[#2E9C82] dark:text-[#8FE0CE]'
+                : 'bg-[#EBE3D3] dark:bg-[#0B0F14] border-[#CFC3AB] dark:border-[#1D2830] text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC]'
             }`}
           >
             <Filter className="w-3.5 h-3.5" />
-            <span>{hideCompleted ? 'Showing Active Only' : 'Show All Tasks'}</span>
+            <span>{hideCompleted ? 'Showing Incomplete' : 'Hide Done'}</span>
           </button>
 
           <button
-            onClick={() => handleOpenAdd('Monday')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1E826C] hover:bg-[#176655] dark:bg-[#2DD4BF] dark:hover:bg-[#14B8A6] text-white dark:text-[#090C11] shadow-md shadow-cyan-500/20 transition-all cursor-pointer"
+            onClick={() => {
+              setModalDefaultDay('Monday');
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#D9551F] hover:bg-[#B84214] dark:bg-[#FF7A47] dark:hover:bg-[#FF9066] text-white dark:text-[#0B0F14] shadow-sm transition-all cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>New Task</span>
           </button>
         </div>
       </div>
 
+      {/* Week Navigator Card */}
+      <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-4 shadow-sm dark:shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePrevWeek}
+            className="p-2 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] cursor-pointer transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <div className="px-3 py-1.5 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] flex items-center gap-2 text-xs font-bold text-[#14181B] dark:text-[#E7ECEC] font-mono">
+            <Calendar className="w-4 h-4 text-[#D9551F] dark:text-[#FF7A47]" />
+            <span>
+              {format(currentMonday, 'MMM d')} - {format(weekEndDate, 'MMM d, yyyy')}
+            </span>
+          </div>
+
+          <button
+            onClick={handleNextWeek}
+            className="p-2 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] cursor-pointer transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={handleJumpToToday}
+            className="text-xs px-3 py-1.5 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] font-semibold cursor-pointer transition-colors"
+          >
+            Current Week
+          </button>
+        </div>
+
+        {/* Progress summary */}
+        <div className="flex items-center gap-4 text-xs font-mono">
+          <div className="flex items-center gap-1.5 text-[#6B655F] dark:text-[#98A6AD]">
+            <CheckCircle2 className="w-4 h-4 text-[#2E9C82] dark:text-[#8FE0CE]" />
+            <span>
+              {completedCount} of {totalCount} completed ({completionRate}%)
+            </span>
+          </div>
+          <div className="w-28 bg-[#EBE3D3] dark:bg-[#0B0F14] h-2 rounded-full overflow-hidden border border-[#CFC3AB]/50 dark:border-[#1D2830]">
+            <div
+              className="bg-[#2E9C82] dark:bg-[#8FE0CE] h-full rounded-full transition-all"
+              style={{ width: `${completionRate}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* 7-Day Kanban Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3.5 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 items-start">
         {DAYS_OF_WEEK.map((day, idx) => {
-          const colDate = addDays(currentMonday, idx);
-          const colDateStr = format(colDate, 'yyyy-MM-dd');
-          const isTodayCol = colDateStr === todayStr;
-          const isSelectedDay = colDateStr === selectedDate;
-
-          const dayTasks = tasks
-            .filter((t) => t.day_of_week === day)
-            .filter((t) => (hideCompleted ? !t.is_done : true));
-
-          const dayCompleted = tasks.filter((t) => t.day_of_week === day && t.is_done).length;
-          const dayTotal = tasks.filter((t) => t.day_of_week === day).length;
+          const dayDate = addDays(currentMonday, idx);
+          const dayDateStr = format(dayDate, 'yyyy-MM-dd');
+          const isToday = dayDateStr === format(new Date(), 'yyyy-MM-dd');
+          const dayTasks = tasksByDay[day];
 
           return (
             <div
               key={day}
-              className={`rounded-3xl border flex flex-col min-h-[500px] transition-all ${
-                isTodayCol
-                  ? 'bg-[#0f172a]/95 border-cyan-500/50 shadow-xl shadow-cyan-500/10'
-                  : isSelectedDay
-                  ? 'bg-[#0e1422]/90 border-slate-700'
-                  : 'bg-[#F5F2EB]/90 dark:bg-[#0D121D] border-[#E2DDD5] dark:border-[#1E2738]'
+              className={`flex flex-col rounded-3xl p-3.5 border transition-all min-h-[420px] ${
+                isToday
+                  ? 'bg-[#E2DAC8] dark:bg-[#121A21] border-[#2E9C82] dark:border-[#8FE0CE] shadow-md'
+                  : 'bg-[#E2DAC8]/60 dark:bg-[#121A21]/70 border-[#CFC3AB] dark:border-[#1D2830]'
               }`}
             >
               {/* Column Header */}
-              <div className="p-3.5 border-b border-[#E2DDD5] dark:border-[#1E2738] flex items-center justify-between">
+              <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-[#CFC3AB]/60 dark:border-[#1D2830]">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span
-                      className={`text-xs font-bold uppercase tracking-wider ${
-                        isTodayCol ? 'text-[#1E826C] dark:text-[#2DD4BF]' : 'text-slate-200'
-                      }`}
-                    >
-                      {day}
-                    </span>
-                    {isTodayCol && (
-                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    <span className="font-display text-sm font-bold text-[#14181B] dark:text-[#E7ECEC]">{day}</span>
+                    {isToday && (
+                      <span className="w-2 h-2 rounded-full bg-[#2E9C82] dark:bg-[#8FE0CE] animate-pulse" />
                     )}
                   </div>
-                  <span className="text-[11px] text-[#78716C] dark:text-[#94A3B8]">{format(colDate, 'MMM d')}</span>
+                  <span className="text-[11px] font-mono text-[#6B655F] dark:text-[#98A6AD]">
+                    {format(dayDate, 'MMM d')}
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] font-semibold text-[#78716C] dark:text-[#64748B]">
-                    {dayCompleted}/{dayTotal}
-                  </span>
-                  <button
-                    onClick={() => handleOpenAdd(day)}
-                    title={`Add task to ${day}`}
-                    className="p-1 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-[#78716C] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC] transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleOpenAddForDay(day)}
+                  className="p-1 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] hover:bg-[#CFC3AB]/40 dark:hover:bg-[#1D2830] transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              {/* Tasks List */}
-              <div className="p-2.5 space-y-2 flex-1 overflow-y-auto">
+              {/* Tasks in this column */}
+              <div className="flex-1 space-y-2">
                 {dayTasks.map((task) => (
                   <TaskCard
                     key={task.id}
@@ -303,12 +304,8 @@ export default function TasksPage() {
                 ))}
 
                 {dayTasks.length === 0 && (
-                  <div
-                    onClick={() => handleOpenAdd(day)}
-                    className="h-28 rounded-2xl border border-dashed border-[#E2DDD5] dark:border-[#1E2738] hover:border-slate-700/80 flex flex-col items-center justify-center text-slate-600 hover:text-[#78716C] dark:text-[#94A3B8] transition-colors cursor-pointer p-3 text-center"
-                  >
-                    <Plus className="w-4 h-4 mb-1 opacity-50" />
-                    <span className="text-[11px]">No tasks</span>
+                  <div className="h-28 flex items-center justify-center border border-dashed border-[#CFC3AB]/80 dark:border-[#1D2830] rounded-2xl text-[11px] text-[#6B655F] dark:text-[#98A6AD] font-sans">
+                    No tasks planned
                   </div>
                 )}
               </div>
@@ -322,7 +319,7 @@ export default function TasksPage() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         defaultDay={modalDefaultDay}
-        onSave={handleCreateTask}
+        onSave={handleSaveNewTask}
       />
     </div>
   );

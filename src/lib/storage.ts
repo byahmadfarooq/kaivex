@@ -1,4 +1,4 @@
-import {
+﻿import {
   DEFAULT_HABITS,
   DEFAULT_PIPELINE_STAGES,
   DEFAULT_SLEEP_SETTINGS,
@@ -6,6 +6,7 @@ import {
 } from './constants';
 import { calculateSleepQuality } from './sleep-calc';
 import { isSupabaseConfigured, supabase } from './supabase';
+import { generateSampleData } from './sample-data';
 import {
   Habit,
   HabitLog,
@@ -16,22 +17,23 @@ import {
   SleepEntry,
   SleepSettings,
   Task,
-} from '../types';
+} from '../types/index';
 
-// Browser LocalStorage keys for instant fallback & offline availability
+// Browser LocalStorage keys with safe prefix
 const LS_PREFIX = 'kaivex_store_';
 
-function getLocal<T>(key: string, defaultValue: T): T {
+export function getLocal<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') return defaultValue;
   try {
     const raw = localStorage.getItem(LS_PREFIX + key);
-    return raw ? JSON.parse(raw) : defaultValue;
+    if (raw === null || raw === undefined) return defaultValue;
+    return JSON.parse(raw) as T;
   } catch {
     return defaultValue;
   }
 }
 
-function setLocal<T>(key: string, val: T): void {
+export function setLocal<T>(key: string, val: T): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(LS_PREFIX + key, JSON.stringify(val));
@@ -42,21 +44,28 @@ function setLocal<T>(key: string, val: T): void {
 
 // ----------------- HABITS -----------------
 export async function getHabits(): Promise<Habit[]> {
+  const localHabits = getLocal<Habit[]>('habits', DEFAULT_HABITS);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase
         .from('habits')
         .select('*')
         .order('order_index', { ascending: true });
-      if (!error && data && data.length > 0) {
-        setLocal('habits', data);
-        return data;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const map = new Map<string, Habit>();
+        localHabits.forEach(h => map.set(h.id, h));
+        data.forEach(h => map.set(h.id, h));
+        const merged = Array.from(map.values()).sort((a, b) => a.order_index - b.order_index);
+        setLocal('habits', merged);
+        return merged;
       }
     } catch (err) {
       console.warn('Supabase getHabits fallback:', err);
     }
   }
-  return getLocal<Habit[]>('habits', DEFAULT_HABITS);
+
+  return localHabits;
 }
 
 export async function saveHabit(habit: Partial<Habit> & { name: string; type: Habit['type'] }): Promise<Habit> {
@@ -73,19 +82,6 @@ export async function saveHabit(habit: Partial<Habit> & { name: string; type: Ha
     created_at: habit.created_at || new Date().toISOString(),
   };
 
-  if (isSupabaseConfigured() && supabase) {
-    try {
-      const { data, error } = await supabase.from('habits').upsert(newHabit).select().single();
-      if (!error && data) {
-        const updated = habits.filter(h => h.id !== id).concat(data);
-        setLocal('habits', updated);
-        return data;
-      }
-    } catch (err) {
-      console.warn('Supabase saveHabit fallback:', err);
-    }
-  }
-
   const existingIdx = habits.findIndex(h => h.id === id);
   let updatedHabits: Habit[];
   if (existingIdx >= 0) {
@@ -94,10 +90,26 @@ export async function saveHabit(habit: Partial<Habit> & { name: string; type: Ha
     updatedHabits = [...habits, newHabit];
   }
   setLocal('habits', updatedHabits);
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase.from('habits').upsert(newHabit).select().single();
+      if (!error && data) {
+        return data;
+      }
+    } catch (err) {
+      console.warn('Supabase saveHabit fallback:', err);
+    }
+  }
+
   return newHabit;
 }
 
 export async function archiveHabit(id: string, is_active: boolean = false): Promise<void> {
+  const habits = getLocal<Habit[]>('habits', DEFAULT_HABITS);
+  const updated = habits.map(h => (h.id === id ? { ...h, is_active } : h));
+  setLocal('habits', updated);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase.from('habits').update({ is_active }).eq('id', id);
@@ -105,48 +117,53 @@ export async function archiveHabit(id: string, is_active: boolean = false): Prom
       console.warn('Supabase archiveHabit fallback:', err);
     }
   }
-  const habits = getLocal<Habit[]>('habits', DEFAULT_HABITS);
-  const updated = habits.map(h => (h.id === id ? { ...h, is_active } : h));
-  setLocal('habits', updated);
 }
 
 export async function deleteHabit(id: string): Promise<void> {
+  // CRITICAL FIX: Only delete the targeted habit and its associated logs.
+  // NEVER touch sleep, pipeline contacts, tasks, or runs!
+  const habits = getLocal<Habit[]>('habits', DEFAULT_HABITS);
+  const filteredHabits = habits.filter(h => h.id !== id);
+  setLocal('habits', filteredHabits);
+
+  const logs = getLocal<HabitLog[]>('habit_logs', []);
+  const filteredLogs = logs.filter(l => l.habit_id !== id);
+  setLocal('habit_logs', filteredLogs);
+
   if (isSupabaseConfigured() && supabase) {
     try {
+      await supabase.from('habit_logs').delete().eq('habit_id', id);
       await supabase.from('habits').delete().eq('id', id);
     } catch (err) {
       console.warn('Supabase deleteHabit fallback:', err);
     }
   }
-  const habits = getLocal<Habit[]>('habits', DEFAULT_HABITS);
-  setLocal('habits', habits.filter(h => h.id !== id));
 }
 
 // ----------------- HABIT LOGS -----------------
 export async function getHabitLogs(startDate?: string, endDate?: string): Promise<HabitLog[]> {
+  let localLogs = getLocal<HabitLog[]>('habit_logs', []);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       let query = supabase.from('habit_logs').select('*');
       if (startDate) query = query.gte('date', startDate);
       if (endDate) query = query.lte('date', endDate);
       const { data, error } = await query;
-      if (!error && data) {
-        const localLogs = getLocal<HabitLog[]>('habit_logs', []);
-        // merge unique
+      if (!error && Array.isArray(data) && data.length > 0) {
         const map = new Map<string, HabitLog>();
         localLogs.forEach(l => map.set(`${l.habit_id}_${l.date}`, l));
         data.forEach(l => map.set(`${l.habit_id}_${l.date}`, l));
         const merged = Array.from(map.values());
         setLocal('habit_logs', merged);
-        return data;
+        localLogs = merged;
       }
     } catch (err) {
       console.warn('Supabase getHabitLogs fallback:', err);
     }
   }
 
-  const logs = getLocal<HabitLog[]>('habit_logs', []);
-  return logs.filter(l => {
+  return localLogs.filter(l => {
     if (startDate && l.date < startDate) return false;
     if (endDate && l.date > endDate) return false;
     return true;
@@ -161,6 +178,17 @@ export async function saveHabitLog(habit_id: string, date: string, value: number
     value,
     updated_at: new Date().toISOString(),
   };
+
+  const logs = getLocal<HabitLog[]>('habit_logs', []);
+  const existingIdx = logs.findIndex(l => l.habit_id === habit_id && l.date === date);
+  let updatedLogs: HabitLog[];
+  if (existingIdx >= 0) {
+    log.id = logs[existingIdx].id;
+    updatedLogs = logs.map((l, idx) => (idx === existingIdx ? { ...l, value, updated_at: new Date().toISOString() } : l));
+  } else {
+    updatedLogs = [...logs, log];
+  }
+  setLocal('habit_logs', updatedLogs);
 
   if (isSupabaseConfigured() && supabase) {
     try {
@@ -177,23 +205,16 @@ export async function saveHabitLog(habit_id: string, date: string, value: number
     }
   }
 
-  const logs = getLocal<HabitLog[]>('habit_logs', []);
-  const existingIdx = logs.findIndex(l => l.habit_id === habit_id && l.date === date);
-  let updatedLogs: HabitLog[];
-  if (existingIdx >= 0) {
-    updatedLogs = logs.map((l, idx) => (idx === existingIdx ? { ...l, value, updated_at: new Date().toISOString() } : l));
-  } else {
-    updatedLogs = [...logs, log];
-  }
-  setLocal('habit_logs', updatedLogs);
   return log;
 }
 
 // ----------------- SLEEP & NAPS -----------------
 export async function getSleepSettings(): Promise<SleepSettings> {
+  const localSettings = getLocal<SleepSettings>('sleep_settings', DEFAULT_SLEEP_SETTINGS);
+
   if (isSupabaseConfigured() && supabase) {
     try {
-      const { data, error } = await supabase.from('sleep_settings').select('*').limit(1).single();
+      const { data, error } = await supabase.from('sleep_settings').select('*').limit(1).maybeSingle();
       if (!error && data) {
         setLocal('sleep_settings', data);
         return data;
@@ -202,10 +223,12 @@ export async function getSleepSettings(): Promise<SleepSettings> {
       console.warn('Supabase getSleepSettings fallback:', err);
     }
   }
-  return getLocal<SleepSettings>('sleep_settings', DEFAULT_SLEEP_SETTINGS);
+  return localSettings;
 }
 
 export async function saveSleepSettings(settings: SleepSettings): Promise<SleepSettings> {
+  setLocal('sleep_settings', settings);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase
@@ -221,38 +244,55 @@ export async function saveSleepSettings(settings: SleepSettings): Promise<SleepS
       console.warn('Supabase saveSleepSettings fallback:', err);
     }
   }
-  setLocal('sleep_settings', settings);
   return settings;
 }
 
 export async function getNaps(date: string): Promise<NapEntry[]> {
+  const allNaps = getLocal<NapEntry[]>('nap_entries', []);
+  const localDateNaps = allNaps.filter(n => n.date === date);
+
   if (isSupabaseConfigured() && supabase) {
     try {
-      const { data, error } = await supabase.from('nap_entries').select('*').eq('date', date).order('start_time', { ascending: true });
-      if (!error && data) {
-        return data;
+      const { data, error } = await supabase
+        .from('nap_entries')
+        .select('*')
+        .eq('date', date)
+        .order('start_time', { ascending: true });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const map = new Map<string, NapEntry>();
+        allNaps.forEach(n => map.set(n.id, n));
+        data.forEach(n => map.set(n.id, n));
+        const merged = Array.from(map.values());
+        setLocal('nap_entries', merged);
+        return merged.filter(n => n.date === date);
       }
     } catch (err) {
       console.warn('Supabase getNaps fallback:', err);
     }
   }
-  const allNaps = getLocal<NapEntry[]>('nap_entries', []);
-  return allNaps.filter(n => n.date === date);
+
+  return localDateNaps;
 }
 
 export async function getAllNaps(): Promise<NapEntry[]> {
+  const localNaps = getLocal<NapEntry[]>('nap_entries', []);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('nap_entries').select('*').order('date', { ascending: false });
-      if (!error && data) {
-        setLocal('nap_entries', data);
-        return data;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const map = new Map<string, NapEntry>();
+        localNaps.forEach(n => map.set(n.id, n));
+        data.forEach(n => map.set(n.id, n));
+        const merged = Array.from(map.values());
+        setLocal('nap_entries', merged);
+        return merged;
       }
     } catch (err) {
       console.warn('Supabase getAllNaps fallback:', err);
     }
   }
-  return getLocal<NapEntry[]>('nap_entries', []);
+  return localNaps;
 }
 
 export async function saveNap(nap: { id?: string; user_id?: string; date: string; start_time: string; end_time: string; notes?: string | null }): Promise<NapEntry> {
@@ -271,6 +311,10 @@ export async function saveNap(nap: { id?: string; user_id?: string; date: string
     created_at: new Date().toISOString(),
   };
 
+  const naps = getLocal<NapEntry[]>('nap_entries', []);
+  const filtered = naps.filter(n => n.id !== entry.id);
+  setLocal('nap_entries', [...filtered, entry]);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('nap_entries').upsert(entry).select().single();
@@ -282,17 +326,14 @@ export async function saveNap(nap: { id?: string; user_id?: string; date: string
     }
   }
 
-  const naps = getLocal<NapEntry[]>('nap_entries', []);
-  const filtered = naps.filter(n => n.id !== entry.id);
-  setLocal('nap_entries', [...filtered, entry]);
-
-  // Recalculate that day's sleep score if a main sleep entry exists
   await recalculateSleepQualityForDate(nap.date);
-
   return entry;
 }
 
 export async function deleteNap(id: string, date: string): Promise<void> {
+  const naps = getLocal<NapEntry[]>('nap_entries', []);
+  setLocal('nap_entries', naps.filter(n => n.id !== id));
+
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase.from('nap_entries').delete().eq('id', id);
@@ -300,29 +341,33 @@ export async function deleteNap(id: string, date: string): Promise<void> {
       console.warn('Supabase deleteNap fallback:', err);
     }
   }
-  const naps = getLocal<NapEntry[]>('nap_entries', []);
-  setLocal('nap_entries', naps.filter(n => n.id !== id));
 
-  // Recalculate sleep score
   await recalculateSleepQualityForDate(date);
 }
 
 export async function getSleepEntry(date: string): Promise<SleepEntry | null> {
+  const entries = getLocal<SleepEntry[]>('sleep_entries', []);
+  const localMatch = entries.find(e => e.date === date) || null;
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('sleep_entries').select('*').eq('date', date).maybeSingle();
       if (!error && data) {
+        const filtered = entries.filter(e => e.date !== date);
+        setLocal('sleep_entries', [...filtered, data]);
         return data;
       }
     } catch (err) {
       console.warn('Supabase getSleepEntry fallback:', err);
     }
   }
-  const entries = getLocal<SleepEntry[]>('sleep_entries', []);
-  return entries.find(e => e.date === date) || null;
+
+  return localMatch;
 }
 
 export async function getSleepHistory(limit: number = 30): Promise<SleepEntry[]> {
+  let entries = getLocal<SleepEntry[]>('sleep_entries', []);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase
@@ -330,15 +375,19 @@ export async function getSleepHistory(limit: number = 30): Promise<SleepEntry[]>
         .select('*')
         .order('date', { ascending: false })
         .limit(limit);
-      if (!error && data) {
-        setLocal('sleep_entries', data);
-        return data;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const map = new Map<string, SleepEntry>();
+        entries.forEach(e => map.set(e.date, e));
+        data.forEach(e => map.set(e.date, e));
+        const merged = Array.from(map.values());
+        setLocal('sleep_entries', merged);
+        entries = merged;
       }
     } catch (err) {
       console.warn('Supabase getSleepHistory fallback:', err);
     }
   }
-  const entries = getLocal<SleepEntry[]>('sleep_entries', []);
+
   return entries.sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
 }
 
@@ -367,6 +416,10 @@ export async function saveSleepEntry(
     updated_at: new Date().toISOString(),
   };
 
+  const entries = getLocal<SleepEntry[]>('sleep_entries', []);
+  const filtered = entries.filter(e => e.date !== entry.date);
+  setLocal('sleep_entries', [...filtered, entry]);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase
@@ -382,9 +435,6 @@ export async function saveSleepEntry(
     }
   }
 
-  const entries = getLocal<SleepEntry[]>('sleep_entries', []);
-  const filtered = entries.filter(e => e.date !== entry.date);
-  setLocal('sleep_entries', [...filtered, entry]);
   return entry;
 }
 
@@ -400,6 +450,9 @@ export async function recalculateSleepQualityForDate(date: string): Promise<void
   entry.duration_minutes = breakdown.duration_minutes;
   entry.updated_at = new Date().toISOString();
 
+  const entries = getLocal<SleepEntry[]>('sleep_entries', []);
+  setLocal('sleep_entries', entries.map(e => (e.id === entry.id ? entry : e)));
+
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase
@@ -410,24 +463,24 @@ export async function recalculateSleepQualityForDate(date: string): Promise<void
       console.warn('Supabase recalculate error:', err);
     }
   }
-
-  const entries = getLocal<SleepEntry[]>('sleep_entries', []);
-  setLocal(
-    'sleep_entries',
-    entries.map(e => (e.id === entry.id ? entry : e))
-  );
 }
 
 // ----------------- RUNS -----------------
 export async function getRuns(): Promise<Run[]> {
+  let runs = getLocal<Run[]>('runs', []);
+
   if (typeof window !== 'undefined') {
     try {
       const res = await fetch('/api/runs');
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.runs) && data.runs.length > 0) {
-          setLocal('runs', data.runs);
-          return data.runs;
+          const map = new Map<string, Run>();
+          runs.forEach(r => map.set(r.id, r));
+          data.runs.forEach((r: Run) => map.set(r.id, r));
+          const merged = Array.from(map.values());
+          setLocal('runs', merged);
+          runs = merged;
         }
       }
     } catch (err) {
@@ -438,15 +491,20 @@ export async function getRuns(): Promise<Run[]> {
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('runs').select('*').order('date', { ascending: false });
-      if (!error && data && data.length > 0) {
-        setLocal('runs', data);
-        return data;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const map = new Map<string, Run>();
+        runs.forEach(r => map.set(r.id, r));
+        data.forEach(r => map.set(r.id, r));
+        const merged = Array.from(map.values());
+        setLocal('runs', merged);
+        runs = merged;
       }
     } catch (err) {
       console.warn('Supabase getRuns fallback:', err);
     }
   }
-  return getLocal<Run[]>('runs', []);
+
+  return runs.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export async function saveRun(runInput: Omit<Run, 'id'> & { id?: string }): Promise<Run> {
@@ -463,12 +521,10 @@ export async function saveRun(runInput: Omit<Run, 'id'> & { id?: string }): Prom
     created_at: runInput.created_at || new Date().toISOString(),
   };
 
-  // Optimistically store in local state first so UI updates immediately
   const existingRuns = getLocal<Run[]>('runs', []);
   const filtered = existingRuns.filter(r => r.id !== run.id);
   setLocal('runs', [run, ...filtered]);
 
-  // Persist to server API route
   if (typeof window !== 'undefined') {
     try {
       const res = await fetch('/api/runs', {
@@ -489,7 +545,6 @@ export async function saveRun(runInput: Omit<Run, 'id'> & { id?: string }): Prom
     }
   }
 
-  // Direct Supabase fallback
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('runs').upsert(run).select().single();
@@ -525,16 +580,17 @@ export async function deleteRun(id: string): Promise<void> {
   }
 }
 
-
 // ----------------- LINKEDIN PIPELINE -----------------
 export async function getPipelineStages(): Promise<PipelineStage[]> {
+  const localStages = getLocal<PipelineStage[]>('pipeline_stages', DEFAULT_PIPELINE_STAGES);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase
         .from('pipeline_stages')
         .select('*')
         .order('order_index', { ascending: true });
-      if (!error && data && data.length > 0) {
+      if (!error && Array.isArray(data) && data.length > 0) {
         setLocal('pipeline_stages', data);
         return data;
       }
@@ -542,7 +598,7 @@ export async function getPipelineStages(): Promise<PipelineStage[]> {
       console.warn('Supabase getPipelineStages fallback:', err);
     }
   }
-  return getLocal<PipelineStage[]>('pipeline_stages', DEFAULT_PIPELINE_STAGES);
+  return localStages;
 }
 
 export async function savePipelineStage(stage: Partial<PipelineStage> & { name: string }): Promise<PipelineStage> {
@@ -556,12 +612,14 @@ export async function savePipelineStage(stage: Partial<PipelineStage> & { name: 
     created_at: stage.created_at || new Date().toISOString(),
   };
 
+  const filtered = stages.filter(s => s.id !== id);
+  const updated = [...filtered, newStage].sort((a, b) => a.order_index - b.order_index);
+  setLocal('pipeline_stages', updated);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('pipeline_stages').upsert(newStage).select().single();
       if (!error && data) {
-        const updated = stages.filter(s => s.id !== id).concat(data);
-        setLocal('pipeline_stages', updated);
         return data;
       }
     } catch (err) {
@@ -569,13 +627,13 @@ export async function savePipelineStage(stage: Partial<PipelineStage> & { name: 
     }
   }
 
-  const filtered = stages.filter(s => s.id !== id);
-  const updated = [...filtered, newStage].sort((a, b) => a.order_index - b.order_index);
-  setLocal('pipeline_stages', updated);
   return newStage;
 }
 
 export async function deletePipelineStage(id: string): Promise<void> {
+  const stages = getLocal<PipelineStage[]>('pipeline_stages', DEFAULT_PIPELINE_STAGES);
+  setLocal('pipeline_stages', stages.filter(s => s.id !== id));
+
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase.from('pipeline_stages').delete().eq('id', id);
@@ -583,26 +641,30 @@ export async function deletePipelineStage(id: string): Promise<void> {
       console.warn('Supabase deletePipelineStage fallback:', err);
     }
   }
-  const stages = getLocal<PipelineStage[]>('pipeline_stages', DEFAULT_PIPELINE_STAGES);
-  setLocal('pipeline_stages', stages.filter(s => s.id !== id));
 }
 
 export async function getPipelineContacts(): Promise<PipelineContact[]> {
+  let contacts = getLocal<PipelineContact[]>('pipeline_contacts', []);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase
         .from('pipeline_contacts')
         .select('*')
         .order('created_at', { ascending: false });
-      if (!error && data) {
-        setLocal('pipeline_contacts', data);
-        return data;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const map = new Map<string, PipelineContact>();
+        contacts.forEach(c => map.set(c.id, c));
+        data.forEach(c => map.set(c.id, c));
+        const merged = Array.from(map.values());
+        setLocal('pipeline_contacts', merged);
+        contacts = merged;
       }
     } catch (err) {
       console.warn('Supabase getPipelineContacts fallback:', err);
     }
   }
-  return getLocal<PipelineContact[]>('pipeline_contacts', []);
+  return contacts;
 }
 
 export async function savePipelineContact(contact: Partial<PipelineContact> & { name: string; current_stage_id: string }): Promise<PipelineContact> {
@@ -620,12 +682,14 @@ export async function savePipelineContact(contact: Partial<PipelineContact> & { 
     updated_at: new Date().toISOString(),
   };
 
+  const filtered = contacts.filter(c => c.id !== id);
+  const updated = [newContact, ...filtered];
+  setLocal('pipeline_contacts', updated);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('pipeline_contacts').upsert(newContact).select().single();
       if (!error && data) {
-        const updated = contacts.filter(c => c.id !== id).concat(data);
-        setLocal('pipeline_contacts', updated);
         return data;
       }
     } catch (err) {
@@ -633,13 +697,13 @@ export async function savePipelineContact(contact: Partial<PipelineContact> & { 
     }
   }
 
-  const filtered = contacts.filter(c => c.id !== id);
-  const updated = [newContact, ...filtered];
-  setLocal('pipeline_contacts', updated);
   return newContact;
 }
 
 export async function deletePipelineContact(id: string): Promise<void> {
+  const contacts = getLocal<PipelineContact[]>('pipeline_contacts', []);
+  setLocal('pipeline_contacts', contacts.filter(c => c.id !== id));
+
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase.from('pipeline_contacts').delete().eq('id', id);
@@ -647,26 +711,30 @@ export async function deletePipelineContact(id: string): Promise<void> {
       console.warn('Supabase deletePipelineContact fallback:', err);
     }
   }
-  const contacts = getLocal<PipelineContact[]>('pipeline_contacts', []);
-  setLocal('pipeline_contacts', contacts.filter(c => c.id !== id));
 }
 
 // ----------------- TASKS (WEEKLY KANBAN) -----------------
 export async function getTasks(weekStartDate?: string): Promise<Task[]> {
+  let allTasks = getLocal<Task[]>('tasks', []);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       let query = supabase.from('tasks').select('*');
       if (weekStartDate) query = query.eq('week_start_date', weekStartDate);
       const { data, error } = await query.order('order_index', { ascending: true });
-      if (!error && data) {
-        return data;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const map = new Map<string, Task>();
+        allTasks.forEach(t => map.set(t.id, t));
+        data.forEach(t => map.set(t.id, t));
+        const merged = Array.from(map.values());
+        setLocal('tasks', merged);
+        allTasks = merged;
       }
     } catch (err) {
       console.warn('Supabase getTasks fallback:', err);
     }
   }
 
-  const allTasks = getLocal<Task[]>('tasks', []);
   if (weekStartDate) {
     return allTasks.filter(t => t.week_start_date === weekStartDate);
   }
@@ -691,6 +759,10 @@ export async function saveTask(taskInput: Partial<Task> & { title: string; day_o
     updated_at: new Date().toISOString(),
   };
 
+  const allTasks = getLocal<Task[]>('tasks', []);
+  const filtered = allTasks.filter(t => t.id !== task.id);
+  setLocal('tasks', [...filtered, task]);
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('tasks').upsert(task).select().single();
@@ -702,13 +774,13 @@ export async function saveTask(taskInput: Partial<Task> & { title: string; day_o
     }
   }
 
-  const allTasks = getLocal<Task[]>('tasks', []);
-  const filtered = allTasks.filter(t => t.id !== task.id);
-  setLocal('tasks', [...filtered, task]);
   return task;
 }
 
 export async function toggleTaskDone(id: string, is_done: boolean): Promise<void> {
+  const allTasks = getLocal<Task[]>('tasks', []);
+  setLocal('tasks', allTasks.map(t => (t.id === id ? { ...t, is_done, updated_at: new Date().toISOString() } : t)));
+
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase.from('tasks').update({ is_done, updated_at: new Date().toISOString() }).eq('id', id);
@@ -716,11 +788,12 @@ export async function toggleTaskDone(id: string, is_done: boolean): Promise<void
       console.warn('Supabase toggleTaskDone fallback:', err);
     }
   }
-  const allTasks = getLocal<Task[]>('tasks', []);
-  setLocal('tasks', allTasks.map(t => (t.id === id ? { ...t, is_done, updated_at: new Date().toISOString() } : t)));
 }
 
 export async function deleteTask(id: string): Promise<void> {
+  const allTasks = getLocal<Task[]>('tasks', []);
+  setLocal('tasks', allTasks.filter(t => t.id !== id));
+
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase.from('tasks').delete().eq('id', id);
@@ -728,8 +801,76 @@ export async function deleteTask(id: string): Promise<void> {
       console.warn('Supabase deleteTask fallback:', err);
     }
   }
-  const allTasks = getLocal<Task[]>('tasks', []);
-  setLocal('tasks', allTasks.filter(t => t.id !== id));
+}
+
+// ----------------- SAMPLE & PREVIEW DATA CONTROLS -----------------
+export async function loadSampleData(): Promise<{ success: boolean; message: string }> {
+  try {
+    const sample = generateSampleData();
+
+    setLocal('habits', sample.habits);
+    setLocal('habit_logs', sample.habitLogs);
+    setLocal('sleep_entries', sample.sleepEntries);
+    setLocal('nap_entries', sample.naps);
+    setLocal('runs', sample.runs);
+    setLocal('pipeline_contacts', sample.contacts);
+    setLocal('pipeline_stages', DEFAULT_PIPELINE_STAGES);
+    setLocal('tasks', sample.tasks);
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.from('habits').upsert(sample.habits);
+        await supabase.from('habit_logs').upsert(sample.habitLogs);
+        await supabase.from('sleep_entries').upsert(sample.sleepEntries);
+        if (sample.naps.length > 0) {
+          await supabase.from('nap_entries').upsert(sample.naps);
+        }
+        await supabase.from('runs').upsert(sample.runs);
+        await supabase.from('pipeline_stages').upsert(DEFAULT_PIPELINE_STAGES);
+        await supabase.from('pipeline_contacts').upsert(sample.contacts);
+        await supabase.from('tasks').upsert(sample.tasks);
+      } catch (sbErr) {
+        console.warn('Supabase sample data sync error:', sbErr);
+      }
+    }
+
+    return { success: true, message: 'Sample data successfully loaded across all modules!' };
+  } catch (err: any) {
+    console.error('Error loading sample data:', err);
+    return { success: false, message: err.message || 'Failed to load sample data.' };
+  }
+}
+
+export async function clearAllSampleData(): Promise<{ success: boolean; message: string }> {
+  try {
+    setLocal('habits', DEFAULT_HABITS);
+    setLocal('pipeline_stages', DEFAULT_PIPELINE_STAGES);
+
+    setLocal('habit_logs', []);
+    setLocal('sleep_entries', []);
+    setLocal('nap_entries', []);
+    setLocal('runs', []);
+    setLocal('pipeline_contacts', []);
+    setLocal('tasks', []);
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase.from('habit_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('sleep_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('nap_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('runs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('pipeline_contacts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (sbErr) {
+        console.warn('Supabase clear error:', sbErr);
+      }
+    }
+
+    return { success: true, message: 'All test/sample data cleared! Clean slate restored.' };
+  } catch (err: any) {
+    console.error('Error clearing sample data:', err);
+    return { success: false, message: err.message || 'Failed to clear sample data.' };
+  }
 }
 
 // ----------------- FULL DATA EXPORT -----------------

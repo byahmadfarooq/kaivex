@@ -23,7 +23,6 @@ import {
   Calendar,
   Layers,
   BarChart2,
-  CheckCircle2,
   Percent,
   Sparkles,
   X,
@@ -62,7 +61,6 @@ export default function HabitsPage() {
       const fetchedHabits = await getHabits();
       setHabits(fetchedHabits);
 
-      // Fetch logs for current range (past 60 days to next 10 days)
       const center = parseISO(selectedDate + 'T12:00:00');
       const start = format(subDays(center, 40), 'yyyy-MM-dd');
       const end = format(addDays(center, 10), 'yyyy-MM-dd');
@@ -93,78 +91,75 @@ export default function HabitsPage() {
     return map;
   }, [logs]);
 
-  // Handle toggling or updating habit
+  // Toggle boolean habit
   const handleToggleBoolean = async (habitId: string) => {
-    const key = `${habitId}_${selectedDate}`;
-    const currentValue = logMap.get(key) || 0;
-    const newValue = currentValue > 0 ? 0 : 1;
+    const currentVal = logMap.get(`${habitId}_${selectedDate}`) || 0;
+    const nextVal = currentVal > 0 ? 0 : 1;
 
-    // Optimistic UI update
     setLogs((prev) => {
       const filtered = prev.filter((l) => !(l.habit_id === habitId && l.date === selectedDate));
-      return [...filtered, { id: crypto.randomUUID(), habit_id: habitId, date: selectedDate, value: newValue }];
+      return [...filtered, { id: crypto.randomUUID(), habit_id: habitId, date: selectedDate, value: nextVal }];
     });
 
-    await saveHabitLog(habitId, selectedDate, newValue);
+    await saveHabitLog(habitId, selectedDate, nextVal);
   };
 
+  // Update counter habit
   const handleUpdateCounter = async (habitId: string, delta: number) => {
-    const key = `${habitId}_${selectedDate}`;
-    const currentValue = logMap.get(key) || 0;
-    const newValue = Math.max(0, currentValue + delta);
+    const currentVal = logMap.get(`${habitId}_${selectedDate}`) || 0;
+    const nextVal = Math.max(0, currentVal + delta);
 
-    // Optimistic UI update
     setLogs((prev) => {
       const filtered = prev.filter((l) => !(l.habit_id === habitId && l.date === selectedDate));
-      return [...filtered, { id: crypto.randomUUID(), habit_id: habitId, date: selectedDate, value: newValue }];
+      return [...filtered, { id: crypto.randomUUID(), habit_id: habitId, date: selectedDate, value: nextVal }];
     });
 
-    await saveHabitLog(habitId, selectedDate, newValue);
+    await saveHabitLog(habitId, selectedDate, nextVal);
   };
 
-  // Save new or edited habit
-  const handleSaveHabit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!habitName.trim()) return;
-
-    if (editingHabit) {
-      await saveHabit({
-        ...editingHabit,
-        name: habitName.trim(),
-        type: habitType,
-        target_value: habitType === 'counter' ? targetValue : 1,
-      });
-    } else {
-      await saveHabit({
-        name: habitName.trim(),
-        type: habitType,
-        target_value: habitType === 'counter' ? targetValue : 1,
-      });
-    }
-
-    setShowAddModal(false);
+  // Open modal for add
+  const handleOpenAdd = () => {
     setEditingHabit(null);
     setHabitName('');
     setHabitType('boolean');
     setTargetValue(5);
-    loadData();
-  };
-
-  const handleOpenEdit = (h: Habit) => {
-    setEditingHabit(h);
-    setHabitName(h.name);
-    setHabitType(h.type);
-    setTargetValue(h.target_value || 5);
     setShowAddModal(true);
   };
 
+  // Open modal for edit
+  const handleOpenEdit = (habit: Habit) => {
+    setEditingHabit(habit);
+    setHabitName(habit.name);
+    setHabitType(habit.type);
+    setTargetValue(habit.target_value || 5);
+    setShowAddModal(true);
+  };
+
+  // Save new / edited habit
+  const handleSaveHabit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!habitName.trim()) return;
+
+    await saveHabit({
+      id: editingHabit ? editingHabit.id : undefined,
+      name: habitName.trim(),
+      type: habitType,
+      target_value: habitType === 'counter' ? targetValue : 1,
+    });
+
+    setShowAddModal(false);
+    loadData();
+  };
+
+  // Archive / unarchive habit
   const handleArchive = async (id: string, currentStatus: boolean) => {
     await archiveHabit(id, !currentStatus);
     loadData();
   };
 
+  // Delete habit
   const handleDelete = async (id: string) => {
-    if (confirm('Delete this habit and all its history? (Or use Archive to preserve history)')) {
+    if (confirm('Delete this habit and its associated logs? (Other modules remain completely safe)')) {
       await deleteHabit(id);
       loadData();
     }
@@ -176,17 +171,16 @@ export default function HabitsPage() {
     let totalScore = 0;
     let completedCount = 0;
 
-    activeHabits.forEach((h) => {
-      const val = logMap.get(`${h.id}_${selectedDate}`) || 0;
-      if (h.type === 'boolean') {
+    activeHabits.forEach((habit) => {
+      const val = logMap.get(`${habit.id}_${selectedDate}`) || 0;
+      if (habit.type === 'boolean') {
         if (val > 0) {
           totalScore += 1;
           completedCount += 1;
         }
       } else {
-        const target = h.target_value || 1;
-        const ratio = Math.min(1, val / target);
-        totalScore += ratio;
+        const target = habit.target_value || 1;
+        totalScore += Math.min(1, val / target);
         if (val >= target) completedCount += 1;
       }
     });
@@ -195,125 +189,123 @@ export default function HabitsPage() {
     return { completedCount, total: activeHabits.length, percentage };
   }, [activeHabits, logMap, selectedDate]);
 
-  // Days for Weekly View (Monday - Sunday)
-  const weekDays = useMemo(() => {
-    const center = parseISO(selectedDate + 'T12:00:00');
-    const start = startOfWeek(center, { weekStartsOn: 1 }); // Monday
-    const end = endOfWeek(center, { weekStartsOn: 1 });
-    return eachDayOfInterval({ start, end });
-  }, [selectedDate]);
+  // Calculation for Weekly View
+  const centerDate = useMemo(() => parseISO(selectedDate + 'T12:00:00'), [selectedDate]);
+  const weekStart = useMemo(() => startOfWeek(centerDate, { weekStartsOn: 1 }), [centerDate]);
+  const weekEnd = useMemo(() => endOfWeek(centerDate, { weekStartsOn: 1 }), [centerDate]);
+  const weekDays = useMemo(() => eachDayOfInterval({ start: weekStart, end: weekEnd }), [weekStart, weekEnd]);
 
-  // Days for Monthly View
-  const monthDays = useMemo(() => {
-    const center = parseISO(selectedDate + 'T12:00:00');
-    const start = startOfMonth(center);
-    const end = endOfMonth(center);
-    return eachDayOfInterval({ start, end });
-  }, [selectedDate]);
-
-  // Weekly Completion Statistics
   const weeklyStats = useMemo(() => {
-    const habitStats = activeHabits.map((h) => {
-      let sumRatio = 0;
+    const habitStats = activeHabits.map((habit) => {
+      let daysDone = 0;
       weekDays.forEach((d) => {
-        const dateKey = format(d, 'yyyy-MM-dd');
-        const val = logMap.get(`${h.id}_${dateKey}`) || 0;
-        const target = h.type === 'counter' ? (h.target_value || 1) : 1;
-        sumRatio += Math.min(1, val / target);
+        const dateStr = format(d, 'yyyy-MM-dd');
+        const val = logMap.get(`${habit.id}_${dateStr}`) || 0;
+        const target = habit.type === 'counter' ? (habit.target_value || 1) : 1;
+        if (val >= target) daysDone += 1;
       });
-      const pct = Math.round((sumRatio / weekDays.length) * 100);
-      return { habit: h, pct };
+      return {
+        habit,
+        daysDone,
+        pct: Math.round((daysDone / 7) * 100),
+      };
     });
 
-    const overall =
-      activeHabits.length > 0
-        ? Math.round(habitStats.reduce((acc, curr) => acc + curr.pct, 0) / activeHabits.length)
-        : 0;
+    const totalPossible = activeHabits.length * 7;
+    const totalDone = habitStats.reduce((acc, h) => acc + h.daysDone, 0);
+    const overall = totalPossible > 0 ? Math.round((totalDone / totalPossible) * 100) : 0;
 
     return { habitStats, overall };
   }, [activeHabits, weekDays, logMap]);
 
-  // Monthly Completion Statistics
+  // Calculation for Monthly View
+  const monthStart = useMemo(() => startOfMonth(centerDate), [centerDate]);
+  const monthEnd = useMemo(() => endOfMonth(centerDate), [centerDate]);
+  const monthDays = useMemo(() => eachDayOfInterval({ start: monthStart, end: monthEnd }), [monthStart, monthEnd]);
+
   const monthlyStats = useMemo(() => {
-    const habitStats = activeHabits.map((h) => {
-      let sumRatio = 0;
+    const daysInMonth = monthDays.length;
+    const habitStats = activeHabits.map((habit) => {
+      let daysDone = 0;
       monthDays.forEach((d) => {
-        const dateKey = format(d, 'yyyy-MM-dd');
-        const val = logMap.get(`${h.id}_${dateKey}`) || 0;
-        const target = h.type === 'counter' ? (h.target_value || 1) : 1;
-        sumRatio += Math.min(1, val / target);
+        const dateStr = format(d, 'yyyy-MM-dd');
+        const val = logMap.get(`${habit.id}_${dateStr}`) || 0;
+        const target = habit.type === 'counter' ? (habit.target_value || 1) : 1;
+        if (val >= target) daysDone += 1;
       });
-      const pct = Math.round((sumRatio / monthDays.length) * 100);
-      return { habit: h, pct };
+      return {
+        habit,
+        daysDone,
+        pct: Math.round((daysDone / daysInMonth) * 100),
+      };
     });
 
-    const overall =
-      activeHabits.length > 0
-        ? Math.round(habitStats.reduce((acc, curr) => acc + curr.pct, 0) / activeHabits.length)
-        : 0;
+    const totalPossible = activeHabits.length * daysInMonth;
+    const totalDone = habitStats.reduce((acc, h) => acc + h.daysDone, 0);
+    const overall = totalPossible > 0 ? Math.round((totalDone / totalPossible) * 100) : 0;
 
     return { habitStats, overall };
   }, [activeHabits, monthDays, logMap]);
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner with DateSelector & View Toggles */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 pb-12">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <CheckSquare className="w-6 h-6 text-cyan-400" />
-            <span>Habit Tracker</span>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-3">
+            <CheckSquare className="w-7 h-7 text-[#D9551F] dark:text-[#FF7A47]" />
+            <span>Habit Tracking System</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Daily routines, prayer tracker, and outreach execution. Backdatable anytime.
+          <p className="text-xs sm:text-sm text-[#6B655F] dark:text-[#98A6AD] mt-1 font-mono">
+            {activeHabits.length} habits active • Daily, Weekly, and Monthly Execution
           </p>
         </div>
 
-        {/* View Switcher */}
-        <div className="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-2xl border border-slate-800">
+        <div className="flex items-center gap-1.5 bg-[#E2DAC8] dark:bg-[#121A21] p-1 rounded-2xl border border-[#CFC3AB] dark:border-[#1D2830]">
           <button
             onClick={() => setViewMode('daily')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               viewMode === 'daily'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#EBE3D3] dark:bg-[#17222C] text-[#D9551F] dark:text-[#FF7A47] font-bold border border-[#B5A88F] dark:border-[#2B3A46] shadow-sm'
+                : 'text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC]'
             }`}
           >
-            Daily View
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Daily</span>
           </button>
           <button
             onClick={() => setViewMode('weekly')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               viewMode === 'weekly'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#EBE3D3] dark:bg-[#17222C] text-[#D9551F] dark:text-[#FF7A47] font-bold border border-[#B5A88F] dark:border-[#2B3A46] shadow-sm'
+                : 'text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC]'
             }`}
           >
-            Weekly Grid
+            <Layers className="w-3.5 h-3.5" />
+            <span>Weekly</span>
           </button>
           <button
             onClick={() => setViewMode('monthly')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               viewMode === 'monthly'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#EBE3D3] dark:bg-[#17222C] text-[#D9551F] dark:text-[#FF7A47] font-bold border border-[#B5A88F] dark:border-[#2B3A46] shadow-sm'
+                : 'text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC]'
             }`}
           >
-            Monthly Heatmap
+            <BarChart2 className="w-3.5 h-3.5" />
+            <span>Monthly</span>
           </button>
         </div>
       </div>
 
       <DateSelector />
 
-      {/* Metric Summary Card */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-2xl p-4 flex items-center justify-between shadow-sm">
           <div>
-            <p className="text-xs font-medium text-slate-400">
-              {viewMode === 'daily' ? 'Daily Completion' : viewMode === 'weekly' ? 'Weekly Average' : 'Monthly Average'}
+            <p className="text-xs font-medium text-[#6B655F] dark:text-[#98A6AD] font-mono">
+              {viewMode === 'daily' ? 'Daily Completion Rate' : viewMode === 'weekly' ? 'Weekly Rate' : 'Monthly Rate'}
             </p>
-            <p className="text-2xl font-bold text-white mt-0.5">
+            <p className="text-2xl font-bold text-[#14181B] dark:text-[#E7ECEC] mt-0.5 font-mono">
               {viewMode === 'daily'
                 ? `${dailyMetrics.percentage}%`
                 : viewMode === 'weekly'
@@ -321,36 +313,30 @@ export default function HabitsPage() {
                 : `${monthlyStats.overall}%`}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-            <Percent className="w-5 h-5 text-cyan-400" />
+          <div className="w-10 h-10 rounded-xl bg-[#D9551F]/15 dark:bg-[#FF7A47]/20 border border-[#D9551F]/30 dark:border-[#FF7A47]/40 flex items-center justify-center">
+            <Percent className="w-5 h-5 text-[#D9551F] dark:text-[#FF7A47]" />
           </div>
         </div>
 
-        <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-2xl p-4 flex items-center justify-between shadow-sm">
           <div>
-            <p className="text-xs font-medium text-slate-400">Habits Completed Today</p>
-            <p className="text-2xl font-bold text-white mt-0.5">
+            <p className="text-xs font-medium text-[#6B655F] dark:text-[#98A6AD] font-mono">Habits Completed Today</p>
+            <p className="text-2xl font-bold text-[#14181B] dark:text-[#E7ECEC] mt-0.5 font-mono">
               {dailyMetrics.completedCount}{' '}
-              <span className="text-sm font-normal text-slate-500">/ {dailyMetrics.total}</span>
+              <span className="text-sm font-normal text-[#6B655F] dark:text-[#98A6AD]">/ {dailyMetrics.total}</span>
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <div className="w-10 h-10 rounded-xl bg-[#2E9C82]/15 dark:bg-[#8FE0CE]/20 border border-[#2E9C82]/30 dark:border-[#8FE0CE]/40 flex items-center justify-center">
+            <CheckSquare className="w-5 h-5 text-[#2E9C82] dark:text-[#8FE0CE]" />
           </div>
         </div>
 
-        <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-2xl p-4 flex items-center justify-between shadow-sm">
           <div>
-            <p className="text-xs font-medium text-slate-400">Manage Habits</p>
+            <p className="text-xs font-medium text-[#6B655F] dark:text-[#98A6AD] font-mono">Manage Habits</p>
             <button
-              onClick={() => {
-                setEditingHabit(null);
-                setHabitName('');
-                setHabitType('boolean');
-                setTargetValue(5);
-                setShowAddModal(true);
-              }}
-              className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+              onClick={handleOpenAdd}
+              className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-[#D9551F] dark:text-[#FF7A47] hover:underline transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Add New Habit</span>
@@ -358,10 +344,10 @@ export default function HabitsPage() {
           </div>
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${
+            className={`text-xs px-2.5 py-1 rounded-lg border font-mono transition-all ${
               showArchived
-                ? 'bg-amber-950/40 text-amber-300 border-amber-800/60'
-                : 'bg-slate-800/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
+                ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40'
+                : 'bg-[#EBE3D3] dark:bg-[#17222C] text-[#6B655F] dark:text-[#98A6AD] border-[#CFC3AB] dark:border-[#1D2830]'
             }`}
           >
             {showArchived ? 'Hide Archived' : 'Show Archived'}
@@ -369,15 +355,14 @@ export default function HabitsPage() {
         </div>
       </div>
 
-      {/* VIEW 1: DAILY CHECKLIST */}
       {viewMode === 'daily' && (
-        <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-3xl p-5 shadow-xl space-y-3">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-cyan-400" />
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-5 shadow-sm space-y-3 transition-colors">
+          <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB] dark:border-[#1D2830]">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] flex items-center gap-2 font-mono">
+              <Calendar className="w-4 h-4 text-[#D9551F] dark:text-[#FF7A47]" />
               <span>Routines for {format(parseISO(selectedDate + 'T12:00:00'), 'EEEE, MMM d')}</span>
             </h2>
-            <span className="text-xs text-slate-400 font-medium">Click to toggle or update counter</span>
+            <span className="text-xs text-[#6B655F] dark:text-[#98A6AD] font-mono">Click to toggle or update counter</span>
           </div>
 
           <div className="space-y-2">
@@ -391,8 +376,8 @@ export default function HabitsPage() {
                   key={habit.id}
                   className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
                     isComplete
-                      ? 'bg-cyan-950/20 border-cyan-800/40'
-                      : 'bg-slate-900/40 border-slate-800/60 hover:border-slate-700/60'
+                      ? 'bg-[#2E9C82]/10 dark:bg-[#8FE0CE]/10 border-[#2E9C82]/30 dark:border-[#8FE0CE]/30'
+                      : 'bg-[#EBE3D3] dark:bg-[#0B0F14] border-[#CFC3AB] dark:border-[#1D2830] hover:border-[#B5A88F]'
                   } ${!habit.is_active ? 'opacity-50' : ''}`}
                 >
                   <div className="flex items-center gap-3">
@@ -401,31 +386,31 @@ export default function HabitsPage() {
                         onClick={() => handleToggleBoolean(habit.id)}
                         className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
                           isComplete
-                            ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
-                            : 'bg-slate-800 hover:bg-slate-700 text-slate-500'
+                            ? 'bg-[#2E9C82] dark:bg-[#8FE0CE] text-white dark:text-[#0B0F14] shadow-sm'
+                            : 'bg-[#DDD5C3] dark:bg-[#17222C] text-[#6B655F] dark:text-[#98A6AD]'
                         }`}
                       >
                         {isComplete ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                       </button>
                     ) : (
-                      <div className="w-6 h-6 rounded-lg bg-indigo-950/60 border border-indigo-700/50 flex items-center justify-center text-xs font-bold text-indigo-400">
+                      <div className="w-6 h-6 rounded-lg bg-[#D9551F]/20 dark:bg-[#FF7A47]/20 border border-[#D9551F]/40 dark:border-[#FF7A47]/40 flex items-center justify-center text-xs font-bold text-[#D9551F] dark:text-[#FF7A47] font-mono">
                         #
                       </div>
                     )}
 
                     <div>
-                      <p className={`text-sm font-semibold ${isComplete ? 'text-cyan-200' : 'text-slate-200'}`}>
+                      <p className={`text-sm font-semibold ${isComplete ? 'text-[#14181B] dark:text-[#E7ECEC]' : 'text-[#4A4540] dark:text-[#C2C9CA]'}`}>
                         {habit.name}
                         {!habit.is_active && (
-                          <span className="ml-2 text-[10px] text-amber-400 bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-800/40">
+                          <span className="ml-2 text-[10px] text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30 font-mono">
                             Archived
                           </span>
                         )}
                       </p>
                       {habit.type === 'counter' && (
-                        <p className="text-xs text-slate-400">
-                          Target: <span className="font-semibold text-slate-300">{habit.target_value}</span> · Logged:{' '}
-                          <span className={isComplete ? 'text-emerald-400 font-semibold' : 'text-slate-300'}>
+                        <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] font-mono">
+                          Target: <span className="font-semibold text-[#14181B] dark:text-[#E7ECEC]">{habit.target_value}</span> • Logged:{' '}
+                          <span className={isComplete ? 'text-[#2E9C82] dark:text-[#8FE0CE] font-semibold' : 'text-[#14181B] dark:text-[#E7ECEC]'}>
                             {currentVal}
                           </span>
                         </p>
@@ -433,47 +418,45 @@ export default function HabitsPage() {
                     </div>
                   </div>
 
-                  {/* Right: Counter controls or Edit menu */}
                   <div className="flex items-center gap-2">
                     {habit.type === 'counter' && (
-                      <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700/50">
+                      <div className="flex items-center gap-1.5 bg-[#DDD5C3] dark:bg-[#17222C] p-1 rounded-xl border border-[#CFC3AB] dark:border-[#1D2830]">
                         <button
                           onClick={() => handleUpdateCounter(habit.id, -1)}
                           disabled={currentVal <= 0}
-                          className="w-7 h-7 rounded-lg bg-slate-700/60 hover:bg-slate-600/80 disabled:opacity-30 text-white flex items-center justify-center cursor-pointer transition-colors"
+                          className="w-7 h-7 rounded-lg bg-[#EBE3D3] dark:bg-[#0B0F14] hover:bg-[#D6CDBC] dark:hover:bg-[#1E2B37] disabled:opacity-30 text-[#14181B] dark:text-[#E7ECEC] flex items-center justify-center cursor-pointer transition-colors"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-7 text-center font-bold text-sm text-white">{currentVal}</span>
+                        <span className="w-7 text-center font-bold text-sm text-[#14181B] dark:text-[#E7ECEC] font-mono">{currentVal}</span>
                         <button
                           onClick={() => handleUpdateCounter(habit.id, 1)}
-                          className="w-7 h-7 rounded-lg bg-cyan-600/60 hover:bg-cyan-500/80 text-white flex items-center justify-center cursor-pointer transition-colors"
+                          className="w-7 h-7 rounded-lg bg-[#D9551F] hover:bg-[#C24816] dark:bg-[#FF7A47] dark:hover:bg-[#FF8E61] text-white dark:text-[#0B0F14] flex items-center justify-center cursor-pointer transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
 
-                    {/* Manage actions */}
-                    <div className="flex items-center gap-1 pl-2 border-l border-slate-800">
+                    <div className="flex items-center gap-1 pl-2 border-l border-[#CFC3AB] dark:border-[#1D2830]">
                       <button
                         onClick={() => handleOpenEdit(habit)}
                         title="Edit habit"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] hover:bg-[#DDD5C3] dark:hover:bg-[#17222C] transition-colors cursor-pointer"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleArchive(habit.id, habit.is_active)}
                         title={habit.is_active ? 'Archive habit' : 'Unarchive habit'}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-950/20 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
                       >
                         <Archive className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDelete(habit.id)}
                         title="Delete habit"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -484,32 +467,31 @@ export default function HabitsPage() {
             })}
 
             {activeHabits.length === 0 && (
-              <div className="py-12 text-center text-slate-500 text-sm">
-                No habits defined. Click "Add New Habit" to create one.
+              <div className="py-12 text-center text-[#6B655F] dark:text-[#98A6AD] text-sm font-mono">
+                No habits defined. Click "Add New Habit" or load sample data in Settings.
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* VIEW 2: WEEKLY GRID */}
       {viewMode === 'weekly' && (
-        <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-3xl p-5 shadow-xl overflow-x-auto">
-          <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800/80">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-cyan-400" />
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-5 shadow-sm overflow-x-auto transition-colors">
+          <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#CFC3AB] dark:border-[#1D2830]">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] flex items-center gap-2 font-mono">
+              <Layers className="w-4 h-4 text-[#D9551F] dark:text-[#FF7A47]" />
               <span>
                 Weekly Overview: {format(weekDays[0], 'MMM d')} – {format(weekDays[6], 'MMM d, yyyy')}
               </span>
             </h2>
-            <div className="flex items-center gap-2 text-xs font-semibold text-cyan-400">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#D9551F] dark:text-[#FF7A47] font-mono">
               <span>Overall Week: {weeklyStats.overall}%</span>
             </div>
           </div>
 
           <table className="w-full text-left border-collapse min-w-[640px]">
             <thead>
-              <tr className="border-b border-slate-800/80 text-xs font-semibold text-slate-400">
+              <tr className="border-b border-[#CFC3AB] dark:border-[#1D2830] text-xs font-semibold text-[#6B655F] dark:text-[#98A6AD] font-mono">
                 <th className="py-2.5 px-3">Habit</th>
                 {weekDays.map((d) => {
                   const isSel = format(d, 'yyyy-MM-dd') === selectedDate;
@@ -518,22 +500,22 @@ export default function HabitsPage() {
                       key={d.toISOString()}
                       onClick={() => setSelectedDate(format(d, 'yyyy-MM-dd'))}
                       className={`py-2.5 px-2 text-center cursor-pointer transition-colors ${
-                        isSel ? 'text-cyan-400 bg-cyan-950/20 rounded-t-xl font-bold' : 'hover:text-slate-200'
+                        isSel ? 'text-[#D9551F] dark:text-[#FF7A47] bg-[#D9551F]/10 dark:bg-[#FF7A47]/10 rounded-t-xl font-bold' : 'hover:text-[#14181B] dark:hover:text-[#E7ECEC]'
                       }`}
                     >
                       <div>{format(d, 'EEE')}</div>
-                      <div className="text-[10px] text-slate-500 font-normal">{format(d, 'M/d')}</div>
+                      <div className="text-[10px] text-[#6B655F] dark:text-[#98A6AD] font-normal">{format(d, 'M/d')}</div>
                     </th>
                   );
                 })}
                 <th className="py-2.5 px-3 text-right">Completion %</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y divide-[#CFC3AB]/50 dark:divide-[#1D2830]/50">
               {weeklyStats.habitStats.map(({ habit, pct }) => {
                 return (
-                  <tr key={habit.id} className="hover:bg-slate-800/20 transition-colors">
-                    <td className="py-3 px-3 font-semibold text-sm text-slate-200">{habit.name}</td>
+                  <tr key={habit.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    <td className="py-3 px-3 font-semibold text-sm text-[#14181B] dark:text-[#E7ECEC]">{habit.name}</td>
                     {weekDays.map((d) => {
                       const dateStr = format(d, 'yyyy-MM-dd');
                       const val = logMap.get(`${habit.id}_${dateStr}`) || 0;
@@ -553,23 +535,23 @@ export default function HabitsPage() {
                               }
                             }}
                             title={`${habit.name} on ${dateStr}: ${val}/${target}`}
-                            className={`w-8 h-8 mx-auto rounded-xl flex items-center justify-center text-xs font-bold transition-transform hover:scale-110 cursor-pointer ${
+                            className={`w-8 h-8 mx-auto rounded-xl flex items-center justify-center text-xs font-bold transition-transform hover:scale-110 cursor-pointer font-mono ${
                               isComplete
-                                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
+                                ? 'bg-[#2E9C82]/20 text-[#2E9C82] dark:text-[#8FE0CE] border border-[#2E9C82]/50'
                                 : isPartial
-                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                                : 'bg-slate-800/40 text-slate-600 border border-slate-800 hover:border-slate-700'
+                                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40'
+                                : 'bg-[#EBE3D3] dark:bg-[#0B0F14] text-[#6B655F] dark:text-[#98A6AD] border border-[#CFC3AB] dark:border-[#1D2830]'
                             }`}
                           >
-                            {habit.type === 'boolean' ? (isComplete ? '✓' : '–') : val}
+                            {habit.type === 'boolean' ? (isComplete ? '✓' : '—') : val}
                           </button>
                         </td>
                       );
                     })}
-                    <td className="py-3 px-3 text-right font-bold text-sm">
+                    <td className="py-3 px-3 text-right font-bold text-sm font-mono">
                       <span
                         className={
-                          pct >= 80 ? 'text-cyan-400' : pct >= 50 ? 'text-amber-400' : 'text-slate-500'
+                          pct >= 80 ? 'text-[#2E9C82] dark:text-[#8FE0CE]' : pct >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-[#6B655F] dark:text-[#98A6AD]'
                         }
                       >
                         {pct}%
@@ -583,23 +565,22 @@ export default function HabitsPage() {
         </div>
       )}
 
-      {/* VIEW 3: MONTHLY HEATMAP */}
       {viewMode === 'monthly' && (
-        <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-3xl p-5 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <BarChart2 className="w-4 h-4 text-cyan-400" />
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-5 shadow-sm space-y-4 transition-colors">
+          <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB] dark:border-[#1D2830]">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] flex items-center gap-2 font-mono">
+              <BarChart2 className="w-4 h-4 text-[#D9551F] dark:text-[#FF7A47]" />
               <span>Monthly Heatmap ({format(parseISO(selectedDate + 'T12:00:00'), 'MMMM yyyy')})</span>
             </h2>
-            <span className="text-xs font-semibold text-cyan-400">Total Monthly: {monthlyStats.overall}%</span>
+            <span className="text-xs font-semibold text-[#D9551F] dark:text-[#FF7A47] font-mono">Total Monthly: {monthlyStats.overall}%</span>
           </div>
 
           <div className="space-y-4">
             {monthlyStats.habitStats.map(({ habit, pct }) => (
-              <div key={habit.id} className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/60 space-y-2">
+              <div key={habit.id} className="p-3.5 rounded-2xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-200">{habit.name}</span>
-                  <span className="font-bold text-cyan-400">{pct}%</span>
+                  <span className="font-semibold text-[#14181B] dark:text-[#E7ECEC]">{habit.name}</span>
+                  <span className="font-bold text-[#D9551F] dark:text-[#FF7A47] font-mono">{pct}%</span>
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
@@ -616,10 +597,10 @@ export default function HabitsPage() {
                         title={`${format(d, 'MMM d')}: ${val}/${target}`}
                         className={`w-5 h-5 rounded-md transition-all cursor-pointer ${
                           ratio >= 1
-                            ? 'bg-cyan-400 shadow-sm shadow-cyan-400/40'
+                            ? 'bg-[#2E9C82] dark:bg-[#8FE0CE] shadow-sm'
                             : ratio > 0
-                            ? 'bg-cyan-700/60'
-                            : 'bg-slate-800/60 hover:bg-slate-700/80'
+                            ? 'bg-[#2E9C82]/50 dark:bg-[#8FE0CE]/50'
+                            : 'bg-[#DDD5C3] dark:bg-[#17222C]'
                         }`}
                       />
                     );
@@ -631,18 +612,17 @@ export default function HabitsPage() {
         </div>
       )}
 
-      {/* Add / Edit Habit Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0d131f] border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-cyan-400" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-2xl space-y-4 transition-colors">
+            <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB] dark:border-[#1D2830]">
+              <h3 className="text-lg font-display font-bold text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#D9551F] dark:text-[#FF7A47]" />
                 <span>{editingHabit ? 'Edit Habit' : 'New Habit'}</span>
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
+                className="p-1 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -650,7 +630,7 @@ export default function HabitsPage() {
 
             <form onSubmit={handleSaveHabit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] mb-1.5 font-mono">
                   Habit Name
                 </label>
                 <input
@@ -659,12 +639,12 @@ export default function HabitsPage() {
                   value={habitName}
                   onChange={(e) => setHabitName(e.target.value)}
                   placeholder="e.g. Fajr Prayer or Read 10 pages"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] placeholder-[#6B655F]/60 focus:outline-none focus:border-[#D9551F] dark:focus:border-[#FF7A47] text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] mb-1.5 font-mono">
                   Habit Type
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -673,53 +653,53 @@ export default function HabitsPage() {
                     onClick={() => setHabitType('boolean')}
                     className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                       habitType === 'boolean'
-                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
-                        : 'bg-slate-900 text-slate-400 border-slate-800'
+                        ? 'bg-[#D9551F]/15 dark:bg-[#FF7A47]/20 text-[#D9551F] dark:text-[#FF7A47] border-[#D9551F]/40 dark:border-[#FF7A47]/40 font-bold'
+                        : 'bg-[#EBE3D3] dark:bg-[#0B0F14] text-[#6B655F] dark:text-[#98A6AD] border-[#CFC3AB] dark:border-[#1D2830]'
                     }`}
                   >
-                    Checkbox (Done/Not Done)
+                    Checkbox (Done / Not)
                   </button>
                   <button
                     type="button"
                     onClick={() => setHabitType('counter')}
                     className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                       habitType === 'counter'
-                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
-                        : 'bg-slate-900 text-slate-400 border-slate-800'
+                        ? 'bg-[#D9551F]/15 dark:bg-[#FF7A47]/20 text-[#D9551F] dark:text-[#FF7A47] border-[#D9551F]/40 dark:border-[#FF7A47]/40 font-bold'
+                        : 'bg-[#EBE3D3] dark:bg-[#0B0F14] text-[#6B655F] dark:text-[#98A6AD] border-[#CFC3AB] dark:border-[#1D2830]'
                     }`}
                   >
-                    Counter (Numeric Target)
+                    Numeric Counter
                   </button>
                 </div>
               </div>
 
               {habitType === 'counter' && (
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Target Value (e.g. 5 comments)
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] mb-1.5 font-mono">
+                    Daily Target Value
                   </label>
                   <input
                     type="number"
                     min="1"
-                    max="1000"
+                    required
                     value={targetValue}
                     onChange={(e) => setTargetValue(parseInt(e.target.value, 10) || 1)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] focus:outline-none focus:border-[#D9551F] dark:focus:border-[#FF7A47] text-sm font-mono"
                   />
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#CFC3AB] dark:border-[#1D2830]">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20 cursor-pointer"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-[#D9551F] hover:bg-[#C24816] dark:bg-[#FF7A47] dark:hover:bg-[#FF8E61] text-white dark:text-[#0B0F14] shadow transition-all cursor-pointer"
                 >
                   {editingHabit ? 'Save Changes' : 'Create Habit'}
                 </button>

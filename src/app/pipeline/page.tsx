@@ -10,11 +10,9 @@ import {
   getPipelineContacts,
   savePipelineContact,
   deletePipelineContact,
-  savePipelineStage,
-  deletePipelineStage,
 } from '@/lib/storage';
 import { PipelineContact, PipelineStage } from '@/types';
-import { Users, Plus, Settings2, Search, Sparkles, Building, PhoneCall } from 'lucide-react';
+import { Users, Plus, Settings2, Search } from 'lucide-react';
 
 export default function PipelinePage() {
   const { selectedDate } = useDate();
@@ -38,193 +36,174 @@ export default function PipelinePage() {
       ]);
       setStages(fetchedStages);
       setContacts(fetchedContacts);
-      if (fetchedStages.length > 0 && !defaultStageId) {
-        setDefaultStageId(fetchedStages[0].id);
-      }
     } catch (err) {
       console.error('Error loading pipeline:', err);
     } finally {
       setLoading(false);
     }
-  }, [defaultStageId]);
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Filter contacts by search
-  const filteredContacts = useMemo(() => {
-    if (!searchQuery.trim()) return contacts;
-    const q = searchQuery.toLowerCase();
-    return contacts.filter(
-      (c) => c.name.toLowerCase().includes(q) || (c.notes && c.notes.toLowerCase().includes(q))
-    );
-  }, [contacts, searchQuery]);
-
-  // Move Contact to another stage
-  const handleMoveStage = async (contactId: string, targetStageId: string) => {
-    const contact = contacts.find((c) => c.id === contactId);
-    if (!contact) return;
-
-    const updated = {
-      ...contact,
-      current_stage_id: targetStageId,
-    };
-
-    setContacts((prev) => prev.map((c) => (c.id === contactId ? updated : c)));
-    await savePipelineContact(updated);
+  // Open add modal
+  const handleOpenAdd = (stageId?: string) => {
+    setEditingContact(null);
+    setDefaultStageId(stageId || (stages[0]?.id ?? ''));
+    setShowContactModal(true);
   };
 
-  // Save Contact
-  const handleSaveContact = async (contactData: Partial<PipelineContact> & { name: string; current_stage_id: string }) => {
-    await savePipelineContact(contactData);
-    setEditingContact(null);
+  // Open edit modal
+  const handleEditContact = (contact: PipelineContact) => {
+    setEditingContact(contact);
+    setDefaultStageId(contact.current_stage_id);
+    setShowContactModal(true);
+  };
+
+  // Save contact
+  const handleSaveContact = async (data: {
+    name: string;
+    current_stage_id: string;
+    linkedin_url?: string | null;
+    last_contact_date?: string | null;
+    notes?: string | null;
+  }) => {
+    await savePipelineContact({
+      ...data,
+      id: editingContact?.id,
+    });
+    setShowContactModal(false);
     loadData();
   };
 
-  // Delete Contact
+  // Delete contact
   const handleDeleteContact = async (id: string) => {
-    if (confirm('Remove this contact from the pipeline?')) {
+    if (confirm('Delete this contact from pipeline?')) {
       await deletePipelineContact(id);
       loadData();
     }
   };
 
-  // Save / Reorder Stage
-  const handleSaveStage = async (stage: Partial<PipelineStage> & { name: string }) => {
-    await savePipelineStage(stage);
+  // Move contact to another stage
+  const handleMoveStage = async (contact: PipelineContact, newStageId: string) => {
+    await savePipelineContact({
+      ...contact,
+      current_stage_id: newStageId,
+    });
     loadData();
   };
 
-  // Delete Stage
-  const handleDeleteStage = async (id: string) => {
-    if (confirm('Delete this stage? Any leads in this stage will be removed.')) {
-      await deletePipelineStage(id);
-      loadData();
-    }
-  };
-
-  const handleOpenAdd = (stageId: string) => {
-    setDefaultStageId(stageId);
-    setEditingContact(null);
-    setShowContactModal(true);
-  };
-
-  const handleOpenEdit = (contact: PipelineContact) => {
-    setEditingContact(contact);
-    setDefaultStageId(contact.current_stage_id);
-    setShowContactModal(true);
-  };
+  // Filter contacts by search query
+  const filteredContacts = useMemo(() => {
+    if (!searchQuery.trim()) return contacts;
+    const q = searchQuery.toLowerCase();
+    return contacts.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.notes && c.notes.toLowerCase().includes(q)) ||
+        (c.linkedin_url && c.linkedin_url.toLowerCase().includes(q))
+    );
+  }, [contacts, searchQuery]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-[#1E826C] dark:text-[#2DD4BF]" />
-            <span>LinkedIn Lead Pipeline</span>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2.5">
+            <Users className="w-6 h-6 text-[#2E9C82] dark:text-[#8FE0CE]" />
+            <span>Executive Pipeline & Network</span>
           </h1>
-          <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
-            Lightweight CRM for relationship management and deal progression.
+          <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans">
+            Client engagements, strategic partnerships, and stage-gate progression.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowStagesModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738]/60 hover:border-slate-600 text-[#57534E] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC] text-xs font-semibold transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] hover:border-[#D9551F] dark:hover:border-[#FF7A47] text-[#14181B] dark:text-[#E7ECEC] transition-all cursor-pointer"
           >
-            <Settings2 className="w-4 h-4 text-[#1E826C] dark:text-[#2DD4BF]" />
-            <span>Stages</span>
+            <Settings2 className="w-3.5 h-3.5 text-[#2E9C82] dark:text-[#8FE0CE]" />
+            <span>Edit Stages</span>
           </button>
 
           <button
-            onClick={() => handleOpenAdd(stages[0]?.id || '')}
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#1E826C] hover:bg-[#176655] dark:bg-[#2DD4BF] dark:hover:bg-[#14B8A6] text-white dark:text-[#090C11] font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
+            onClick={() => handleOpenAdd()}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#D9551F] hover:bg-[#B84214] dark:bg-[#FF7A47] dark:hover:bg-[#FF9066] text-white dark:text-[#0B0F14] shadow-sm transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Lead</span>
+            <span>Add Contact</span>
           </button>
         </div>
       </div>
 
-      {/* Metric Strip & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors p-4 rounded-3xl">
-        <div className="flex items-center gap-6 text-xs">
-          <div>
-            <span className="text-[#78716C] dark:text-[#94A3B8]">Total Leads: </span>
-            <span className="font-bold text-[#1C1917] dark:text-[#F8FAFC] text-sm">{contacts.length}</span>
-          </div>
-          <div>
-            <span className="text-[#78716C] dark:text-[#94A3B8]">Active Stages: </span>
-            <span className="font-bold text-[#1E826C] dark:text-[#2DD4BF] text-sm">{stages.length}</span>
-          </div>
-        </div>
-
-        {/* Search input */}
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-[#78716C] dark:text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Search Bar & Summary */}
+      <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-4 shadow-sm dark:shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B655F] dark:text-[#98A6AD]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search leads or notes..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] text-xs placeholder-slate-500 focus:outline-none focus:border-[#1E826C] dark:focus:border-[#2DD4BF]"
+            placeholder="Search by name, notes, LinkedIn..."
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] placeholder-[#6B655F]/60 dark:placeholder-[#98A6AD]/50 text-xs focus:outline-none focus:border-[#D9551F] dark:focus:border-[#FF7A47]"
           />
+        </div>
+
+        <div className="text-xs font-mono text-[#6B655F] dark:text-[#98A6AD]">
+          Total Contacts: <span className="font-bold text-[#14181B] dark:text-[#E7ECEC]">{contacts.length}</span> across{' '}
+          <span className="font-bold text-[#14181B] dark:text-[#E7ECEC]">{stages.length}</span> stages
         </div>
       </div>
 
-      {/* Pipeline Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start">
+      {/* Kanban Stages Board */}
+      <div className="flex gap-4 overflow-x-auto pb-4 items-start">
         {stages.map((stage) => {
           const stageContacts = filteredContacts.filter((c) => c.current_stage_id === stage.id);
 
           return (
             <div
               key={stage.id}
-              className="bg-[#F5F2EB]/90 dark:bg-[#0D121D] border-[#E2DDD5] dark:border-[#1E2738] rounded-3xl p-3.5 flex flex-col min-h-[520px] shadow-lg"
+              className="w-80 shrink-0 bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-4 flex flex-col min-h-[480px] shadow-sm dark:shadow-xl transition-colors"
             >
               {/* Stage Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738] mb-3 px-1">
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#CFC3AB]/60 dark:border-[#1D2830]">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs uppercase tracking-wider text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#D9551F] dark:bg-[#FF7A47]" />
+                  <span className="font-display font-bold text-sm text-[#14181B] dark:text-[#E7ECEC]">
                     {stage.name}
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E2DDD5] dark:bg-[#1E2738] text-[#57534E] dark:text-[#94A3B8] font-semibold">
+                  <span className="text-xs font-mono text-[#6B655F] dark:text-[#98A6AD] px-2 py-0.5 rounded-full bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB]/60 dark:border-[#1D2830]">
                     {stageContacts.length}
                   </span>
                 </div>
 
                 <button
                   onClick={() => handleOpenAdd(stage.id)}
-                  title={`Add lead to ${stage.name}`}
-                  className="p-1 rounded-lg bg-[#E2DDD5] dark:bg-[#1E2738]/60 hover:bg-slate-700 text-[#78716C] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC] transition-colors cursor-pointer"
+                  className="p-1 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] hover:bg-[#CFC3AB]/40 dark:hover:bg-[#1D2830] transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              {/* Contact Cards */}
-              <div className="space-y-2.5 flex-1 overflow-y-auto">
+              {/* Contact Cards in Stage */}
+              <div className="flex-1 space-y-3">
                 {stageContacts.map((contact) => (
                   <ContactCard
                     key={contact.id}
                     contact={contact}
-                    stages={stages}
-                    onEdit={handleOpenEdit}
+                    allStages={stages}
+                    onEdit={handleEditContact}
                     onDelete={handleDeleteContact}
                     onMoveStage={handleMoveStage}
                   />
                 ))}
 
                 {stageContacts.length === 0 && (
-                  <div
-                    onClick={() => handleOpenAdd(stage.id)}
-                    className="h-28 rounded-2xl border border-dashed border-[#E2DDD5] dark:border-[#1E2738] hover:border-slate-700 flex flex-col items-center justify-center text-slate-600 hover:text-[#78716C] dark:text-[#94A3B8] transition-colors cursor-pointer text-center p-3"
-                  >
-                    <Plus className="w-4 h-4 mb-1 opacity-50" />
-                    <span className="text-[11px]">Add lead</span>
+                  <div className="h-32 flex items-center justify-center border border-dashed border-[#CFC3AB] dark:border-[#1D2830] rounded-2xl text-xs text-[#6B655F] dark:text-[#98A6AD] font-sans">
+                    No contacts in this stage
                   </div>
                 )}
               </div>
@@ -239,7 +218,6 @@ export default function PipelinePage() {
         onClose={() => setShowContactModal(false)}
         stages={stages}
         defaultStageId={defaultStageId}
-        defaultDate={selectedDate}
         editingContact={editingContact}
         onSave={handleSaveContact}
       />
@@ -248,8 +226,7 @@ export default function PipelinePage() {
         isOpen={showStagesModal}
         onClose={() => setShowStagesModal(false)}
         stages={stages}
-        onSaveStage={handleSaveStage}
-        onDeleteStage={handleDeleteStage}
+        onRefresh={loadData}
       />
     </div>
   );

@@ -33,70 +33,73 @@ export default function MainSleepForm({
   breakdown,
 }: MainSleepFormProps) {
   return (
-    <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
-        <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
-          <Moon className="w-5 h-5 text-indigo-400" />
+    <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-sm dark:shadow-xl space-y-4 transition-colors">
+      <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB]/60 dark:border-[#1D2830]">
+        <h2 className="font-display text-base font-bold text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2">
+          <Moon className="w-5 h-5 text-[#2E9C82] dark:text-[#8FE0CE]" />
           <span>Main Night Sleep ({format(parseISO(selectedDate + 'T12:00:00'), 'MMM d')})</span>
         </h2>
         {sleepEntry && (
-          <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 font-semibold flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Logged
+          <span className="flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-[#2E9C82]/10 dark:bg-[#8FE0CE]/10 text-[#2E9C82] dark:text-[#8FE0CE] border border-[#2E9C82]/30 font-semibold font-mono">
+            <CheckCircle2 className="w-3 h-3" />
+            <span>Logged</span>
           </span>
         )}
       </div>
 
-      <form onSubmit={handleSaveSleep} className="space-y-4">
+      <form onSubmit={handleSaveSleep} className="space-y-4 text-xs">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8] mb-1.5">
-              Sleep Time (Night Of)
+            <label className="block font-bold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] mb-1.5 font-sans">
+              Bedtime
             </label>
             <input
               type="time"
               required
               value={bedtimeTime}
               onChange={(e) => setBedtimeTime(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] font-mono text-lg focus:outline-none focus:border-[#1E826C] dark:focus:border-[#2DD4BF]"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] font-mono text-sm focus:outline-none focus:border-[#D9551F] dark:focus:border-[#FF7A47]"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8] mb-1.5">
-              Wake Time (Morning)
+            <label className="block font-bold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] mb-1.5 font-sans">
+              Wake Time
             </label>
             <input
               type="time"
               required
               value={wakeTime}
               onChange={(e) => setWakeTime(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] font-mono text-lg focus:outline-none focus:border-[#1E826C] dark:focus:border-[#2DD4BF]"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] font-mono text-sm focus:outline-none focus:border-[#D9551F] dark:focus:border-[#FF7A47]"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8] mb-1.5">
-            Sleep Notes / Quality Factors (Optional)
+          <label className="block font-bold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] mb-1.5 font-sans">
+            Sleep Notes & Observations
           </label>
           <textarea
             value={sleepNotes}
             onChange={(e) => setSleepNotes(e.target.value)}
-            placeholder="e.g. Took magnesium, room temp was cool, felt refreshed"
-            rows={2}
-            className="w-full px-4 py-2.5 rounded-2xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] placeholder-slate-500 text-sm focus:outline-none focus:border-[#1E826C] dark:focus:border-[#2DD4BF]"
+            placeholder="e.g. Magnesium taken at 21:30, bedroom temp 19C, woke up naturally without alarm"
+            rows={3}
+            className="w-full px-4 py-2.5 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] placeholder-[#6B655F]/60 dark:placeholder-[#98A6AD]/50 focus:outline-none focus:border-[#D9551F] dark:focus:border-[#FF7A47] resize-none font-sans"
           />
         </div>
 
         <div className="flex items-center justify-between pt-2">
-          <div className="text-xs text-[#78716C] dark:text-[#94A3B8]">
-            Live calculated score:{' '}
-            <span className="font-bold text-[#1E826C] dark:text-[#2DD4BF]">{breakdown?.final_quality_score}%</span>
+          <div className="text-xs text-[#6B655F] dark:text-[#98A6AD] font-mono">
+            {breakdown && (
+              <span>Duration: {Math.floor(breakdown.duration_minutes / 60)}h {breakdown.duration_minutes % 60}m</span>
+            )}
           </div>
+
           <button
             type="submit"
             disabled={savingSleep}
-            className="px-6 py-2.5 rounded-2xl bg-cyan-500 hover:bg-[#1E826C] dark:bg-[#2DD4BF] active:scale-95 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl font-bold bg-[#D9551F] hover:bg-[#B84214] dark:bg-[#FF7A47] dark:hover:bg-[#FF9066] text-white dark:text-[#0B0F14] shadow-sm transition-all cursor-pointer disabled:opacity-50"
           >
             {savingSleep ? 'Saving...' : sleepEntry ? 'Update Sleep Entry' : 'Save Sleep Entry'}
           </button>

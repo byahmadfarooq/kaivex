@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -74,15 +74,15 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#F5F2EB]/90 dark:bg-[#090C11]/85 backdrop-blur-xl border-b border-[#E2DDD5] dark:border-[#20293A] transition-colors">
+    <header className="sticky top-0 z-40 w-full bg-[#EBE3D3]/90 dark:bg-[#0B0F14]/90 backdrop-blur-xl border-b border-[#CFC3AB] dark:border-[#1D2830] transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        {/* Brand with Rhythm Waves */}
+        {/* Brand Lockup */}
         <Link href="/" className="flex items-center gap-2 group">
           <KaivexLogo size="md" />
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1 bg-[#EBE6DC]/70 dark:bg-[#121824]/70 p-1 rounded-2xl border border-[#DCD5C9] dark:border-[#1E2636] transition-colors">
+        <nav className="hidden md:flex items-center gap-1 bg-[#E2DAC8] dark:bg-[#121A21] p-1 rounded-2xl border border-[#CFC3AB] dark:border-[#1D2830] transition-colors">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -92,11 +92,11 @@ export default function Navbar() {
                 href={item.href}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   isActive
-                    ? 'bg-white dark:bg-[#1A2333] text-[#1E826C] dark:text-[#2DD4BF] border border-[#D5CEC2] dark:border-[#2B384E] shadow-sm'
-                    : 'text-[#665F56] dark:text-[#94A3B8] hover:text-[#1C1917] dark:hover:text-slate-100 hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
+                    ? 'bg-[#EBE3D3] dark:bg-[#17222C] text-[#D9551F] dark:text-[#FF7A47] border border-[#B5A88F] dark:border-[#2B3A46] shadow-sm font-bold'
+                    : 'text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#1E826C] dark:text-[#2DD4BF]' : 'text-current'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#D9551F] dark:text-[#FF7A47]' : 'text-current'}`} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -109,9 +109,9 @@ export default function Navbar() {
           <button
             onClick={toggleTheme}
             title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            className="p-2 rounded-xl text-[#665F56] dark:text-[#94A3B8] hover:text-[#1C1917] dark:hover:text-white bg-[#EAE5DB]/60 dark:bg-[#121824]/60 hover:bg-[#E0DACF] dark:hover:bg-[#1B2332] border border-[#DCD5C9] dark:border-[#20293A] transition-all cursor-pointer"
+            className="p-2 rounded-xl text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-white bg-[#E2DAC8] dark:bg-[#121A21] hover:bg-[#D6CDBC] dark:hover:bg-[#1D2830] border border-[#CFC3AB] dark:border-[#1D2830] transition-all cursor-pointer"
           >
-            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#1E826C]" />}
+            {isDark ? <Sun className="w-4 h-4 text-[#FF7A47]" /> : <Moon className="w-4 h-4 text-[#D9551F]" />}
           </button>
 
           {/* Export Button */}
@@ -119,9 +119,9 @@ export default function Navbar() {
             onClick={handleExport}
             disabled={exporting}
             title="Download full JSON export"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#1C1917] dark:text-slate-200 bg-[#EAE5DB]/80 dark:bg-[#121824]/80 hover:bg-[#E0DACF] dark:hover:bg-[#1A2332] border border-[#DCD5C9] dark:border-[#232D3F] transition-all cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#14181B] dark:text-[#E7ECEC] bg-[#E2DAC8] dark:bg-[#121A21] hover:bg-[#D6CDBC] dark:hover:bg-[#1D2830] border border-[#CFC3AB] dark:border-[#1D2830] transition-all cursor-pointer disabled:opacity-50"
           >
-            <Download className="w-3.5 h-3.5 text-[#D95323] dark:text-[#F97316]" />
+            <Download className="w-3.5 h-3.5 text-[#D9551F] dark:text-[#FF7A47]" />
             <span>{exporting ? 'Exporting...' : 'Export'}</span>
           </button>
 
@@ -129,7 +129,7 @@ export default function Navbar() {
           <button
             onClick={handleLogout}
             title="Lock session"
-            className="p-2 rounded-xl text-[#665F56] dark:text-[#94A3B8] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 border border-transparent transition-all cursor-pointer"
+            className="p-2 rounded-xl text-[#6B655F] dark:text-[#98A6AD] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 border border-transparent transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -139,13 +139,14 @@ export default function Navbar() {
         <div className="md:hidden flex items-center gap-1.5">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl bg-[#EAE5DB]/80 dark:bg-[#121824]/80 border border-[#DCD5C9] dark:border-[#20293A]"
+            className="p-2 rounded-xl text-[#6B655F] dark:text-[#98A6AD] bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830]"
           >
-            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#1E826C]" />}
+            {isDark ? <Sun className="w-4 h-4 text-[#FF7A47]" /> : <Moon className="w-4 h-4 text-[#D9551F]" />}
           </button>
+
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl bg-[#EAE5DB]/80 dark:bg-[#121824]/80 border border-[#DCD5C9] dark:border-[#20293A]"
+            className="p-2 rounded-xl text-[#14181B] dark:text-[#E7ECEC] bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830]"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -154,7 +155,7 @@ export default function Navbar() {
 
       {/* Mobile dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden px-4 pt-2 pb-4 bg-[#F5F2EB] dark:bg-[#0E131C] border-b border-[#E2DDD5] dark:border-[#20293A] space-y-1">
+        <div className="md:hidden px-4 pt-2 pb-4 border-t border-[#CFC3AB] dark:border-[#1D2830] bg-[#EBE3D3] dark:bg-[#0B0F14] space-y-1 animate-fadeIn">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -163,34 +164,34 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold ${
                   isActive
-                    ? 'bg-white dark:bg-[#182130] text-[#1E826C] dark:text-[#2DD4BF] border border-[#D5CEC2] dark:border-[#28354A]'
-                    : 'text-[#665F56] dark:text-[#94A3B8] hover:bg-black/5 dark:hover:bg-white/5'
+                    ? 'bg-[#E2DAC8] dark:bg-[#121A21] text-[#D9551F] dark:text-[#FF7A47] font-bold border border-[#B5A88F] dark:border-[#2B3A46]'
+                    : 'text-[#6B655F] dark:text-[#98A6AD] hover:bg-black/5 dark:hover:bg-white/5'
                 }`}
               >
-                <Icon className="w-4 h-4 text-[#1E826C] dark:text-[#2DD4BF]" />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-[#D9551F] dark:text-[#FF7A47]' : 'text-current'}`} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
-          <div className="pt-2 border-t border-[#E2DDD5] dark:border-[#20293A] flex items-center justify-between">
+
+          <div className="pt-2 border-t border-[#CFC3AB] dark:border-[#1D2830] flex items-center justify-between">
             <button
-              onClick={() => {
-                handleExport();
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl bg-white dark:bg-[#141C29] border border-[#DCD5C9] dark:border-[#20293A]"
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-2 text-xs font-semibold text-[#14181B] dark:text-[#E7ECEC] py-2 px-3 rounded-xl bg-[#E2DAC8] dark:bg-[#121A21]"
             >
-              <Download className="w-4 h-4 text-[#D95323] dark:text-[#F97316]" />
-              <span>Export Data</span>
+              <Download className="w-4 h-4 text-[#D9551F] dark:text-[#FF7A47]" />
+              <span>Export JSON</span>
             </button>
+
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 text-xs font-semibold text-rose-600 dark:text-rose-400 px-3 py-2 rounded-xl bg-rose-500/10"
+              className="flex items-center gap-2 text-xs font-semibold text-rose-600 dark:text-rose-400 py-2 px-3 rounded-xl bg-rose-500/10"
             >
               <LogOut className="w-4 h-4" />
-              <span>Lock PIN</span>
+              <span>Lock War Room</span>
             </button>
           </div>
         </div>

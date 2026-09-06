@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 
@@ -8,57 +8,40 @@ interface KaivexLogoProps {
   showText?: boolean;
 }
 
-export function KaivexRhythmIcon({ className = 'w-7 h-5' }: { className?: string }) {
+export function KaivexWaveMark({ className = 'w-9 h-6' }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 48 24"
+      viewBox="0 0 80 50"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
     >
-      {/* Top Wave: Stone Taupe */}
+      {/* Three distinct wave lanes that never converge */}
+      {/* Top lane: Fog / Warm Fog */}
       <path
-        d="M2 4C8 4 10 2 16 2C22 2 26 4 32 4C38 4 40 2 46 2"
-        stroke="currentColor"
-        strokeWidth="2.75"
+        d="M2,10 C15,4 28,16 41,10 C54,4 67,16 78,10"
+        fill="none"
+        strokeWidth="2.8"
         strokeLinecap="round"
-        className="text-[#9E978E] dark:text-[#A8A29E]"
+        className="stroke-[#6B655F] dark:stroke-[#98A6AD]"
       />
-      {/* Middle Wave: Kai Sea Teal */}
+      {/* Middle lane: Current Deepened / Ice Current */}
       <path
-        d="M2 12C8 12 10 10 16 10C22 10 26 12 32 12C38 12 40 10 46 10"
-        stroke="#1E826C"
-        strokeWidth="2.75"
+        d="M2,26 C15,32 28,20 41,26 C54,32 67,20 78,26"
+        fill="none"
+        strokeWidth="4"
         strokeLinecap="round"
-        className="dark:stroke-[#2DD4BF]"
+        className="stroke-[#2E9C82] dark:stroke-[#8FE0CE]"
       />
-      {/* Bottom Wave: Vex Terracotta */}
+      {/* Bottom lane: Flare Deepened / Signal Flare */}
       <path
-        d="M2 20C8 20 10 18 16 18C22 18 26 20 32 20C38 20 40 18 46 18"
-        stroke="#D95323"
-        strokeWidth="2.75"
+        d="M2,42 C15,36 28,48 41,42 C54,36 67,48 78,42"
+        fill="none"
+        strokeWidth="5.5"
         strokeLinecap="round"
-        className="dark:stroke-[#F97316]"
+        className="stroke-[#D9551F] dark:stroke-[#FF7A47]"
       />
-    </svg>
-  );
-}
-
-export function KaivexVertexIcon({ className = 'w-6 h-6' }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 32 32"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden="true"
-    >
-      {/* 3 lines meeting at a vertex point */}
-      <line x1="4" y1="8" x2="16" y2="16" stroke="#D95323" strokeWidth="2.5" strokeLinecap="round" className="dark:stroke-[#F97316]" />
-      <line x1="28" y1="8" x2="16" y2="16" stroke="#1E826C" strokeWidth="2.5" strokeLinecap="round" className="dark:stroke-[#2DD4BF]" />
-      <line x1="16" y1="16" x2="16" y2="28" stroke="#A8A29E" strokeWidth="2.5" strokeLinecap="round" className="dark:stroke-[#9E978E]" />
-      <circle cx="16" cy="16" r="3" fill="#D95323" className="dark:fill-[#F97316]" />
     </svg>
   );
 }
@@ -69,27 +52,26 @@ export default function KaivexLogo({
   showText = true,
 }: KaivexLogoProps) {
   const iconSizes = {
-    sm: 'w-6 h-4',
-    md: 'w-8 h-5',
+    sm: 'w-7 h-4',
+    md: 'w-9 h-5',
     lg: 'w-12 h-7',
   };
 
   const textSizes = {
-    sm: 'text-lg',
+    sm: 'text-base',
     md: 'text-xl',
     lg: 'text-3xl',
   };
 
   return (
-    <div className={`flex items-center gap-2.5 font-bold tracking-tight select-none ${className}`}>
-      <div className="p-1 rounded-xl bg-amber-500/10 dark:bg-slate-800/60 border border-amber-500/20 dark:border-slate-700/50 flex items-center justify-center transition-colors">
-        <KaivexRhythmIcon className={iconSizes[size]} />
+    <div className={`flex items-center gap-2.5 select-none ${className}`}>
+      <div className="p-1 rounded-xl bg-[#DDD5C3]/70 dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] flex items-center justify-center transition-colors">
+        <KaivexWaveMark className={iconSizes[size]} />
       </div>
 
       {showText && (
-        <span className={`${textSizes[size]} tracking-tight font-extrabold flex items-center`}>
-          <span className="text-[#1E826C] dark:text-[#2DD4BF]">Kai</span>
-          <span className="text-[#D95323] dark:text-[#F97316]">vex</span>
+        <span className={`${textSizes[size]} font-display font-bold tracking-tight text-[#14181B] dark:text-[#E7ECEC]`}>
+          <span className="font-bold">K</span>aive<span className="text-[#D9551F] dark:text-[#FF7A47]">x</span>
         </span>
       )}
     </div>

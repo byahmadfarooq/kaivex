@@ -17,13 +17,13 @@ export default function SleepHistoryGrid({
   onSelectDate,
 }: SleepHistoryGridProps) {
   return (
-    <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8] flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-[#1E826C] dark:text-[#2DD4BF]" />
-          <span>Recent Sleep History</span>
+    <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-sm dark:shadow-xl space-y-4 transition-colors">
+      <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB]/60 dark:border-[#1D2830]">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-[#2E9C82] dark:text-[#8FE0CE]" />
+          <span>Recent Sleep Cadence (Last 14 Days)</span>
         </h2>
-        <span className="text-xs text-[#78716C] dark:text-[#64748B]">Click any card to load & backdate</span>
+        <span className="text-xs text-[#6B655F] dark:text-[#98A6AD] font-sans">Click card to jump to date</span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
@@ -36,31 +36,37 @@ export default function SleepHistoryGrid({
               onClick={() => onSelectDate(entry.date)}
               className={`p-3 rounded-2xl border transition-all text-center cursor-pointer ${
                 isSelected
-                  ? 'bg-cyan-950/30 border-cyan-500/60 shadow-lg shadow-cyan-500/10'
-                  : 'bg-[#F5F2EB]/40 dark:bg-[#090C11]/40 border-[#E2DDD5] dark:border-[#1E2738] hover:border-slate-700'
+                  ? 'bg-[#2E9C82]/20 border-[#2E9C82] dark:border-[#8FE0CE] shadow-sm'
+                  : 'bg-[#EBE3D3] dark:bg-[#0B0F14] border-[#CFC3AB] dark:border-[#1D2830] hover:border-[#D9551F] dark:hover:border-[#FF7A47]'
               }`}
             >
-              <div className="text-[11px] font-medium text-[#78716C] dark:text-[#94A3B8]">
+              <span className="block text-[11px] font-bold text-[#6B655F] dark:text-[#98A6AD] uppercase font-mono">
                 {format(parseISO(entry.date + 'T12:00:00'), 'EEE, MMM d')}
+              </span>
+              <div className="my-1">
+                <span className="font-mono text-lg font-bold text-[#14181B] dark:text-[#E7ECEC]">
+                  {hours}
+                </span>
+                <span className="text-[10px] text-[#6B655F] dark:text-[#98A6AD] ml-0.5">hrs</span>
               </div>
-              <div className="text-lg font-bold text-[#1C1917] dark:text-[#F8FAFC] my-1">{hours} hrs</div>
               <div
-                className={`text-xs font-semibold ${
-                  entry.quality_score >= 80
-                    ? 'text-emerald-400'
-                    : entry.quality_score >= 60
-                    ? 'text-[#1E826C] dark:text-[#2DD4BF]'
-                    : 'text-amber-400'
+                className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full ${
+                  (entry.quality_score || 0) >= 80
+                    ? 'bg-[#2E9C82]/15 text-[#2E9C82] dark:text-[#8FE0CE]'
+                    : (entry.quality_score || 0) >= 60
+                    ? 'bg-[#D9551F]/15 text-[#D9551F] dark:text-[#FF7A47]'
+                    : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                 }`}
               >
-                {entry.quality_score}%
+                Score: {entry.quality_score ?? '--'}%
               </div>
             </button>
           );
         })}
+
         {history.length === 0 && (
-          <div className="col-span-full py-6 text-center text-[#78716C] dark:text-[#64748B] text-xs">
-            No historical sleep entries logged yet.
+          <div className="col-span-full py-6 text-center text-xs text-[#6B655F] dark:text-[#98A6AD] font-sans">
+            No sleep history recorded yet. Log tonight's sleep to populate the cadence grid.
           </div>
         )}
       </div>

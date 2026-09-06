@@ -17,6 +17,7 @@ import {
   Flame,
   Award,
   Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   format,
@@ -33,6 +34,7 @@ export default function RunningPage() {
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
   const [editingRun, setEditingRun] = useState<Run | null>(null);
+  const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
 
   // Load runs
   const loadRuns = useCallback(async () => {
@@ -53,25 +55,32 @@ export default function RunningPage() {
 
   // Save run & check off "Run" habit if exists
   const handleSaveRun = async (runData: Omit<Run, 'id'>) => {
-    const saved = await saveRun(editingRun ? { ...runData, id: editingRun.id } : runData);
-
-    // Auto-check the Run habit for this date
     try {
-      const habits = await getHabits();
-      const runHabit = habits.find((h) => h.name.toLowerCase() === 'run');
-      if (runHabit) {
-        await saveHabitLog(runHabit.id, runData.date, 1);
-      }
-    } catch (err) {
-      console.warn('Auto-check run habit error:', err);
-    }
+      await saveRun(editingRun ? { ...runData, id: editingRun.id } : runData);
 
-    setEditingRun(null);
-    loadRuns();
+      // Auto-check the Run habit for this date if one exists
+      try {
+        const habits = await getHabits();
+        const runHabit = habits.find((h) => h.name.toLowerCase().includes('run'));
+        if (runHabit) {
+          await saveHabitLog(runHabit.id, runData.date, 1);
+        }
+      } catch (habitErr) {
+        console.warn('Auto-check run habit error:', habitErr);
+      }
+
+      setEditingRun(null);
+      setSaveSuccessNotice(true);
+      setTimeout(() => setSaveSuccessNotice(false), 3500);
+      await loadRuns();
+    } catch (err) {
+      console.error('Failed to save run:', err);
+      alert('Error saving run session. Please try again.');
+    }
   };
 
   const handleDeleteRun = async (id: string) => {
-    if (confirm('Delete this run entry?')) {
+    if (confirm('Delete this recorded run session?')) {
       await deleteRun(id);
       loadRuns();
     }
@@ -105,7 +114,7 @@ export default function RunningPage() {
       totalDist += Number(r.distance_km);
     });
 
-    let avgPaceStr = '—';
+    let avgPaceStr = '--:--';
     if (totalDist > 0) {
       const paceDec = totalDur / totalDist;
       const pMin = Math.floor(paceDec);
@@ -114,10 +123,8 @@ export default function RunningPage() {
     }
 
     return {
-      weekKm: Math.round(weekKm * 10) / 10,
-      monthKm: Math.round(monthKm * 10) / 10,
-      weekCount: weekRuns.length,
-      monthCount: monthRuns.length,
+      weekKm: weekKm.toFixed(1),
+      monthKm: monthKm.toFixed(1),
       totalRuns,
       avgPaceStr,
     };
@@ -128,12 +135,12 @@ export default function RunningPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2.5">
-            <Activity className="w-6 h-6 text-[#1E826C] dark:text-[#2DD4BF]" />
-            <span>Running & Aerobic Tracker</span>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2.5">
+            <Activity className="w-6 h-6 text-[#D9551F] dark:text-[#FF7A47]" />
+            <span>Endurance & Running Log</span>
           </h1>
-          <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
-            Log distances, times, and paces. Manual entry with reserved schema for future sync.
+          <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans">
+            Distance, duration, cadence, and pace metrics with automatic habit cross-checking.
           </p>
         </div>
 
@@ -142,101 +149,102 @@ export default function RunningPage() {
             setEditingRun(null);
             setShowLogModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#1E826C] hover:bg-[#176655] dark:bg-[#2DD4BF] dark:hover:bg-[#14B8A6] text-white dark:text-[#090C11] font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold bg-[#D9551F] hover:bg-[#B84214] dark:bg-[#FF7A47] dark:hover:bg-[#FF9066] text-white dark:text-[#0B0F14] shadow-sm transition-all cursor-pointer w-fit"
         >
           <Plus className="w-4 h-4" />
           <span>Record New Run</span>
         </button>
       </div>
 
+      {saveSuccessNotice && (
+        <div className="flex items-center gap-2 p-3.5 rounded-2xl bg-[#2E9C82]/15 border border-[#2E9C82]/30 text-[#2E9C82] dark:text-[#8FE0CE] text-xs font-semibold animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>Run session recorded successfully and synced with habit tracker!</span>
+        </div>
+      )}
+
       <DateSelector />
 
-      {/* Running Metric Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-5 shadow-xl flex items-center justify-between">
+      {/* Aggregate Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-5 shadow-sm dark:shadow-xl flex items-center justify-between transition-colors">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8]">Weekly Mileage</p>
-            <p className="text-3xl font-extrabold text-[#1C1917] dark:text-[#F8FAFC] mt-1">
-              {stats.weekKm} <span className="text-sm font-semibold text-[#78716C] dark:text-[#64748B]">km</span>
-            </p>
-            <p className="text-[11px] text-[#78716C] dark:text-[#94A3B8] mt-0.5">{stats.weekCount} runs this week</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD]">This Week</p>
+            <p className="font-mono text-3xl font-extrabold text-[#14181B] dark:text-[#E7ECEC] mt-1">{stats.weekKm} <span className="text-sm font-sans font-medium text-[#6B655F] dark:text-[#98A6AD]">km</span></p>
+            <p className="text-[11px] text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans">Monday - Sunday</p>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-[#1E826C]/10 dark:bg-[#2DD4BF]/10 border border-[#1E826C]/20 dark:border-[#2DD4BF]/20 flex items-center justify-center">
-            <Flame className="w-5 h-5 text-[#1E826C] dark:text-[#2DD4BF]" />
+          <div className="w-10 h-10 rounded-2xl bg-[#D9551F]/10 dark:bg-[#FF7A47]/10 border border-[#D9551F]/20 dark:border-[#FF7A47]/20 flex items-center justify-center">
+            <Flame className="w-5 h-5 text-[#D9551F] dark:text-[#FF7A47]" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-5 shadow-xl flex items-center justify-between">
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-5 shadow-sm dark:shadow-xl flex items-center justify-between transition-colors">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8]">Monthly Volume</p>
-            <p className="text-3xl font-extrabold text-[#1C1917] dark:text-[#F8FAFC] mt-1">
-              {stats.monthKm} <span className="text-sm font-semibold text-[#78716C] dark:text-[#64748B]">km</span>
-            </p>
-            <p className="text-[11px] text-[#78716C] dark:text-[#94A3B8] mt-0.5">{stats.monthCount} runs this month</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD]">This Month</p>
+            <p className="font-mono text-3xl font-extrabold text-[#14181B] dark:text-[#E7ECEC] mt-1">{stats.monthKm} <span className="text-sm font-sans font-medium text-[#6B655F] dark:text-[#98A6AD]">km</span></p>
+            <p className="text-[11px] text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans">Total monthly volume</p>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-            <Award className="w-5 h-5 text-cyan-400" />
+          <div className="w-10 h-10 rounded-2xl bg-[#2E9C82]/10 dark:bg-[#8FE0CE]/10 border border-[#2E9C82]/20 dark:border-[#8FE0CE]/20 flex items-center justify-center">
+            <Award className="w-5 h-5 text-[#2E9C82] dark:text-[#8FE0CE]" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-5 shadow-xl flex items-center justify-between">
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-5 shadow-sm dark:shadow-xl flex items-center justify-between transition-colors">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8]">Average Pace</p>
-            <p className="text-3xl font-extrabold text-[#1C1917] dark:text-[#F8FAFC] mt-1">
-              {stats.avgPaceStr} <span className="text-sm font-semibold text-[#78716C] dark:text-[#64748B]">/km</span>
-            </p>
-            <p className="text-[11px] text-[#78716C] dark:text-[#94A3B8] mt-0.5">All-time aerobic pace</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD]">Average Pace</p>
+            <p className="font-mono text-3xl font-extrabold text-[#2E9C82] dark:text-[#8FE0CE] mt-1">{stats.avgPaceStr}</p>
+            <p className="text-[11px] text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans">min / km overall</p>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-            <Gauge className="w-5 h-5 text-indigo-400" />
+          <div className="w-10 h-10 rounded-2xl bg-[#2E9C82]/10 dark:bg-[#8FE0CE]/10 border border-[#2E9C82]/20 dark:border-[#8FE0CE]/20 flex items-center justify-center">
+            <Gauge className="w-5 h-5 text-[#2E9C82] dark:text-[#8FE0CE]" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-5 shadow-xl flex items-center justify-between">
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-5 shadow-sm dark:shadow-xl flex items-center justify-between transition-colors">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8]">Total Runs</p>
-            <p className="text-3xl font-extrabold text-[#1C1917] dark:text-[#F8FAFC] mt-1">{stats.totalRuns}</p>
-            <p className="text-[11px] text-[#78716C] dark:text-[#94A3B8] mt-0.5">Recorded sessions</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD]">Total Runs</p>
+            <p className="font-mono text-3xl font-extrabold text-[#14181B] dark:text-[#E7ECEC] mt-1">{stats.totalRuns}</p>
+            <p className="text-[11px] text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans">Recorded sessions</p>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-amber-400" />
+          <div className="w-10 h-10 rounded-2xl bg-[#D9551F]/10 dark:bg-[#FF7A47]/10 border border-[#D9551F]/20 dark:border-[#FF7A47]/20 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-[#D9551F] dark:text-[#FF7A47]" />
           </div>
         </div>
       </div>
 
       {/* Selected Day Run Card */}
-      <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-3">
-        <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
-          <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
-            <Activity className="w-5 h-5 text-[#1E826C] dark:text-[#2DD4BF]" />
+      <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-sm dark:shadow-xl space-y-3 transition-colors">
+        <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB]/60 dark:border-[#1D2830]">
+          <h2 className="font-display text-base font-bold text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2">
+            <Activity className="w-5 h-5 text-[#D9551F] dark:text-[#FF7A47]" />
             <span>Run on {format(parseISO(selectedDate + 'T12:00:00'), 'EEEE, MMMM d, yyyy')}</span>
           </h2>
           {runOnSelectedDate && (
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/40 text-[#1E826C] dark:text-[#2DD4BF] border border-emerald-800/40 font-semibold">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#2E9C82]/15 text-[#2E9C82] dark:text-[#8FE0CE] border border-[#2E9C82]/30 font-semibold font-mono">
               Completed
             </span>
           )}
         </div>
 
         {runOnSelectedDate ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#F5F2EB]/60 dark:bg-[#090C11]/50 border border-[#E2DDD5] dark:border-[#1E2738]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830]">
             <div className="flex items-center gap-6">
               <div>
-                <span className="text-xs text-[#78716C] dark:text-[#94A3B8] uppercase tracking-wider">Distance</span>
-                <p className="text-2xl font-bold text-[#1C1917] dark:text-[#F8FAFC]">{runOnSelectedDate.distance_km} km</p>
+                <span className="text-xs text-[#6B655F] dark:text-[#98A6AD] uppercase tracking-wider font-sans">Distance</span>
+                <p className="font-mono text-2xl font-bold text-[#14181B] dark:text-[#E7ECEC]">{runOnSelectedDate.distance_km} km</p>
               </div>
               <div>
-                <span className="text-xs text-[#78716C] dark:text-[#94A3B8] uppercase tracking-wider">Duration</span>
-                <p className="text-2xl font-bold text-[#1C1917] dark:text-[#F8FAFC]">{runOnSelectedDate.duration_minutes} min</p>
+                <span className="text-xs text-[#6B655F] dark:text-[#98A6AD] uppercase tracking-wider font-sans">Duration</span>
+                <p className="font-mono text-2xl font-bold text-[#14181B] dark:text-[#E7ECEC]">{runOnSelectedDate.duration_minutes} min</p>
               </div>
               <div>
-                <span className="text-xs text-[#78716C] dark:text-[#94A3B8] uppercase tracking-wider">Pace</span>
-                <p className="text-2xl font-bold text-[#1E826C] dark:text-[#2DD4BF]">{runOnSelectedDate.pace} /km</p>
+                <span className="text-xs text-[#6B655F] dark:text-[#98A6AD] uppercase tracking-wider font-sans">Pace</span>
+                <p className="font-mono text-2xl font-bold text-[#2E9C82] dark:text-[#8FE0CE]">{runOnSelectedDate.pace} /km</p>
               </div>
             </div>
 
             {runOnSelectedDate.notes && (
-              <p className="text-xs text-[#78716C] dark:text-[#94A3B8] italic max-w-sm">"{runOnSelectedDate.notes}"</p>
+              <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] italic max-w-sm font-sans">"{runOnSelectedDate.notes}"</p>
             )}
 
             <div className="flex items-center gap-2">
@@ -245,13 +253,13 @@ export default function RunningPage() {
                   setEditingRun(runOnSelectedDate);
                   setShowLogModal(true);
                 }}
-                className="p-2 rounded-xl text-[#78716C] dark:text-[#94A3B8] hover:text-slate-200 hover:bg-slate-800 border border-slate-700/60"
+                className="p-2 rounded-xl text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] hover:bg-[#CFC3AB]/30 dark:hover:bg-[#1D2830] border border-[#CFC3AB] dark:border-[#1D2830] transition-colors"
               >
                 <Edit2 className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleDeleteRun(runOnSelectedDate.id)}
-                className="p-2 rounded-xl text-[#78716C] dark:text-[#94A3B8] hover:text-rose-400 hover:bg-rose-950/20 border border-slate-700/60"
+                className="p-2 rounded-xl text-[#6B655F] dark:text-[#98A6AD] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 border border-[#CFC3AB] dark:border-[#1D2830] transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -259,13 +267,13 @@ export default function RunningPage() {
           </div>
         ) : (
           <div className="py-8 text-center space-y-3">
-            <p className="text-sm text-[#78716C] dark:text-[#94A3B8]">No run logged for this date.</p>
+            <p className="text-sm text-[#6B655F] dark:text-[#98A6AD] font-sans">No run logged for this date.</p>
             <button
               onClick={() => {
                 setEditingRun(null);
                 setShowLogModal(true);
               }}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-[#1E826C] dark:text-[#2DD4BF] border border-emerald-900/40 cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] hover:bg-[#CFC3AB]/40 dark:hover:bg-[#1D2830] text-[#D9551F] dark:text-[#FF7A47] border border-[#CFC3AB] dark:border-[#1D2830] cursor-pointer transition-all"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Log Run for this Day</span>
@@ -275,38 +283,38 @@ export default function RunningPage() {
       </div>
 
       {/* Run Log History */}
-      <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#94A3B8] flex items-center gap-2">
-            <Clock className="w-4 h-4 text-cyan-400" />
+      <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-sm dark:shadow-xl space-y-4 transition-colors">
+        <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB]/60 dark:border-[#1D2830]">
+          <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#2E9C82] dark:text-[#8FE0CE]" />
             <span>Running History</span>
           </h2>
-          <span className="text-xs text-[#78716C] dark:text-[#64748B]">{runs.length} total entries</span>
+          <span className="text-xs text-[#6B655F] dark:text-[#98A6AD] font-mono">{runs.length} total entries</span>
         </div>
 
         <div className="space-y-2">
           {runs.map((run) => (
             <div
               key={run.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-[#F5F2EB]/40 dark:bg-[#090C11]/40 border border-[#E2DDD5] dark:border-[#1E2738] hover:border-slate-700/80 transition-all gap-3"
+              className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] hover:border-[#D9551F] dark:hover:border-[#FF7A47] transition-all gap-3"
             >
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setSelectedDate(run.date)}
-                  className="w-12 text-center p-1.5 rounded-xl bg-slate-800/80 text-xs font-bold text-[#57534E] dark:text-[#94A3B8] hover:text-cyan-400 hover:bg-cyan-950/40 transition-colors"
+                  className="w-16 text-center p-1.5 rounded-xl bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] text-xs font-bold text-[#14181B] dark:text-[#E7ECEC] hover:text-[#D9551F] dark:hover:text-[#FF7A47] transition-colors font-mono cursor-pointer"
                 >
                   {format(parseISO(run.date + 'T12:00:00'), 'MMM d')}
                 </button>
 
                 <div>
                   <div className="flex items-center gap-3">
-                    <span className="text-base font-bold text-[#1C1917] dark:text-[#F8FAFC]">{run.distance_km} km</span>
-                    <span className="text-xs text-[#78716C] dark:text-[#94A3B8]">({run.duration_minutes} mins)</span>
-                    <span className="text-xs font-mono font-semibold text-[#1E826C] dark:text-[#2DD4BF] bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/40">
+                    <span className="font-mono text-base font-bold text-[#14181B] dark:text-[#E7ECEC]">{run.distance_km} km</span>
+                    <span className="text-xs text-[#6B655F] dark:text-[#98A6AD] font-mono">({run.duration_minutes} mins)</span>
+                    <span className="text-xs font-mono font-semibold text-[#2E9C82] dark:text-[#8FE0CE] bg-[#2E9C82]/10 dark:bg-[#8FE0CE]/10 px-2 py-0.5 rounded border border-[#2E9C82]/20">
                       {run.pace} /km
                     </span>
                   </div>
-                  {run.notes && <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">{run.notes}</p>}
+                  {run.notes && <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans italic">"{run.notes}"</p>}
                 </div>
               </div>
 
@@ -316,13 +324,13 @@ export default function RunningPage() {
                     setEditingRun(run);
                     setShowLogModal(true);
                   }}
-                  className="p-1.5 rounded-lg text-[#78716C] dark:text-[#94A3B8] hover:text-slate-200 hover:bg-slate-800"
+                  className="p-1.5 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] transition-colors"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDeleteRun(run.id)}
-                  className="p-1.5 rounded-lg text-[#78716C] dark:text-[#94A3B8] hover:text-rose-400 hover:bg-rose-950/20"
+                  className="p-1.5 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -331,7 +339,7 @@ export default function RunningPage() {
           ))}
 
           {runs.length === 0 && (
-            <div className="py-8 text-center text-[#78716C] dark:text-[#64748B] text-xs">
+            <div className="py-8 text-center text-[#6B655F] dark:text-[#98A6AD] text-xs font-sans">
               No runs recorded yet. Click "Record New Run" above to start your log.
             </div>
           )}

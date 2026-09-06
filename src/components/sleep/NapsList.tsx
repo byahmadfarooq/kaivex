@@ -24,62 +24,62 @@ export default function NapsList({
   onOpenAddNap,
   onDeleteNap,
 }: NapsListProps) {
+  const threshold = settings?.nap_threshold_minutes || 45;
+  const isOverThreshold = totalNapMins > threshold;
+
   return (
-    <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
+    <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-sm dark:shadow-xl space-y-4 transition-colors">
+      <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB]/60 dark:border-[#1D2830]">
         <div>
-          <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
-            <Coffee className="w-5 h-5 text-amber-400" />
+          <h2 className="font-display text-base font-bold text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2">
+            <Coffee className="w-5 h-5 text-[#D9551F] dark:text-[#FF7A47]" />
             <span>Daytime Naps ({format(parseISO(selectedDate + 'T12:00:00'), 'MMM d')})</span>
           </h2>
-          <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
-            Total: <span className="font-semibold text-[#1C1917] dark:text-[#F8FAFC]">{totalNapMins} mins</span> · Threshold: {settings?.nap_threshold_minutes} mins
+          <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans">
+            Naps over {threshold} mins penalize tonight's quality score.
           </p>
         </div>
 
         <button
           onClick={onOpenAddNap}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] hover:border-[#D9551F] dark:hover:border-[#FF7A47] text-[#14181B] dark:text-[#E7ECEC] transition-all cursor-pointer"
         >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Log Nap</span>
+          <Plus className="w-3.5 h-3.5 text-[#D9551F] dark:text-[#FF7A47]" />
+          <span>Add Nap</span>
         </button>
       </div>
+
+      {isOverThreshold && (
+        <div className="flex items-center gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>Total nap time ({totalNapMins}m) exceeds {threshold}m threshold. Applied -{breakdown?.nap_penalty || 0}% score penalty.</span>
+        </div>
+      )}
 
       <div className="space-y-2">
         {naps.map((nap) => {
           const startD = new Date(nap.start_time);
           const endD = new Date(nap.end_time);
-          const isLate = startD.getHours() >= 16;
-
           return (
             <div
               key={nap.id}
-              className="flex items-center justify-between p-3 rounded-2xl bg-[#F5F2EB]/60 dark:bg-[#090C11]/50 border border-[#E2DDD5] dark:border-[#1E2738] hover:border-slate-700/60 transition-all"
+              className="flex items-center justify-between p-3 rounded-2xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] transition-all"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-xs">
-                  {nap.duration_minutes}m
+              <div>
+                <div className="flex items-center gap-2 font-mono text-sm font-bold text-[#14181B] dark:text-[#E7ECEC]">
+                  <span>{format(startD, 'HH:mm')} - {format(endD, 'HH:mm')}</span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-[#2E9C82]/10 dark:bg-[#8FE0CE]/10 text-[#2E9C82] dark:text-[#8FE0CE] border border-[#2E9C82]/20 font-mono">
+                    {nap.duration_minutes} mins
+                  </span>
                 </div>
-                <div>
-                  <div className="text-sm font-semibold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
-                    <span>
-                      {format(startD, 'hh:mm a')} – {format(endD, 'hh:mm a')}
-                    </span>
-                    {isLate && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/50 text-rose-400 border border-rose-800/40 font-semibold">
-                        Late Nap (1.5x penalty)
-                      </span>
-                    )}
-                  </div>
-                  {nap.notes && <p className="text-xs text-[#78716C] dark:text-[#94A3B8]">{nap.notes}</p>}
-                </div>
+                {nap.notes && (
+                  <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-sans italic">"{nap.notes}"</p>
+                )}
               </div>
 
               <button
                 onClick={() => onDeleteNap(nap.id)}
-                title="Delete nap"
-                className="p-1.5 rounded-lg text-[#78716C] dark:text-[#94A3B8] hover:text-rose-400 hover:bg-rose-950/20 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -88,21 +88,11 @@ export default function NapsList({
         })}
 
         {naps.length === 0 && (
-          <div className="py-8 text-center text-[#78716C] dark:text-[#64748B] text-xs">
-            No naps logged for this date.
+          <div className="py-6 text-center text-[#6B655F] dark:text-[#98A6AD] text-xs font-sans">
+            No daytime naps logged for this date.
           </div>
         )}
       </div>
-
-      {totalNapMins > (settings?.nap_threshold_minutes || 60) && (
-        <div className="p-3 rounded-2xl bg-amber-950/30 border border-amber-800/40 text-xs text-amber-300 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <span>
-            Total nap duration ({totalNapMins}m) exceeds the {settings?.nap_threshold_minutes}m threshold. A{' '}
-            {breakdown?.nap_penalty} point penalty applies to that night's sleep quality score.
-          </span>
-        </div>
-      )}
     </div>
   );
 }
