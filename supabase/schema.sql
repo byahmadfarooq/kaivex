@@ -155,3 +155,23 @@ INSERT INTO pipeline_stages (id, user_id, name, order_index) VALUES
 ('22222222-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'Call Booked', 4),
 ('22222222-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', 'Closed', 5)
 ON CONFLICT (id) DO NOTHING;
+-- ========================================================
+-- SECURITY NOTE FOR SINGLE-USER APP:
+-- Because Kaivex uses app-level PIN authentication (PIN 6842)
+-- with a single fixed user (00000000-0000-0000-0000-000000000001),
+-- Row Level Security (RLS) must be disabled or granted to public/anon
+-- so that queries from the web client succeed without authentication errors:
+-- ========================================================
+ALTER TABLE IF EXISTS users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS habits DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS habit_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS sleep_entries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS nap_entries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS sleep_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS runs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS pipeline_stages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS pipeline_contacts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS tasks DISABLE ROW LEVEL SECURITY;
+
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;

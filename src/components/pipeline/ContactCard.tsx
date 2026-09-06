@@ -37,16 +37,16 @@ export default function ContactCard({
   };
 
   return (
-    <div className="group bg-[#111827]/90 border border-slate-800/80 hover:border-slate-700/80 rounded-2xl p-3.5 shadow-md space-y-2.5 transition-all text-xs">
+    <div className="group bg-white dark:bg-[#111622] border-[#E2DDD5] dark:border-[#1E2738] shadow-sm hover:border-slate-700/80 rounded-2xl p-3.5 shadow-md space-y-2.5 transition-all text-xs">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h4 className="font-bold text-white text-sm leading-tight">{contact.name}</h4>
+          <h4 className="font-bold text-[#1C1917] dark:text-[#F8FAFC] text-sm leading-tight">{contact.name}</h4>
           {contact.linkedin_url && (
             <a
               href={contact.linkedin_url.startsWith('http') ? contact.linkedin_url : `https://${contact.linkedin_url}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] text-cyan-400 hover:text-cyan-300 mt-0.5 hover:underline"
+              className="inline-flex items-center gap-1 text-[11px] text-[#1E826C] dark:text-[#2DD4BF] hover:text-cyan-300 mt-0.5 hover:underline"
             >
               <span>LinkedIn Profile</span>
               <ExternalLink className="w-2.5 h-2.5" />
@@ -57,13 +57,13 @@ export default function ContactCard({
         <div className="flex items-center gap-1">
           <button
             onClick={() => onEdit(contact)}
-            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+            className="p-1 rounded hover:bg-[#E2DDD5] dark:bg-[#1E2738] text-[#78716C] dark:text-[#94A3B8] hover:text-slate-200"
           >
             <Edit2 className="w-3 h-3" />
           </button>
           <button
             onClick={() => onDelete(contact.id)}
-            className="p-1 rounded hover:bg-rose-950/30 text-slate-400 hover:text-rose-400"
+            className="p-1 rounded hover:bg-rose-950/30 text-[#78716C] dark:text-[#94A3B8] hover:text-rose-400"
           >
             <Trash2 className="w-3 h-3" />
           </button>
@@ -71,14 +71,14 @@ export default function ContactCard({
       </div>
 
       {contact.notes && (
-        <p className="text-[11px] text-slate-400 bg-slate-900/60 p-2 rounded-xl border border-slate-800/50 line-clamp-3 leading-relaxed">
+        <p className="text-[11px] text-[#78716C] dark:text-[#94A3B8] bg-[#F5F2EB]/80 dark:bg-[#090C11]/60 p-2.5 rounded-xl border border-[#E2DDD5] dark:border-[#1E2738] line-clamp-3 leading-relaxed">
           {contact.notes}
         </p>
       )}
 
-      <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[10px] text-slate-500">
+      <div className="flex items-center justify-between pt-1 border-t border-[#E2DDD5] dark:border-[#1E2738] text-[10px] text-[#78716C] dark:text-[#64748B]">
         <div className="flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-slate-500" />
+          <Calendar className="w-3 h-3 text-[#78716C] dark:text-[#64748B]" />
           <span>
             {contact.last_contact_date
               ? format(parseISO(contact.last_contact_date + 'T12:00:00'), 'MMM d, yyyy')
@@ -91,7 +91,7 @@ export default function ContactCard({
             <button
               onClick={handlePrev}
               title={`Move to ${stages[currentStageIndex - 1]?.name}`}
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
+              className="p-1 rounded hover:bg-[#E2DDD5] dark:bg-[#1E2738] text-[#78716C] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC]"
             >
               <ArrowLeft className="w-3 h-3" />
             </button>
@@ -101,7 +101,7 @@ export default function ContactCard({
             <button
               onClick={handleNext}
               title={`Move to ${stages[currentStageIndex + 1]?.name}`}
-              className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white"
+              className="p-1 rounded hover:bg-[#E2DDD5] dark:bg-[#1E2738] text-[#78716C] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC]"
             >
               <ArrowRight className="w-3 h-3" />
             </button>

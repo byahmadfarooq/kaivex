@@ -118,33 +118,33 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-          <SettingsIcon className="w-6 h-6 text-cyan-400" />
+        <h1 className="text-2xl font-bold tracking-tight text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2.5">
+          <SettingsIcon className="w-6 h-6 text-[#1E826C] dark:text-[#2DD4BF]" />
           <span>System Settings & Data Management</span>
         </h1>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
           Configure sleep scoring algorithms, manage cloud database sync, and export personal data.
         </p>
       </div>
 
       {/* 1. DATA EXPORT CARD */}
-      <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-3xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+      <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
           <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Download className="w-5 h-5 text-cyan-400" />
+            <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
+              <Download className="w-5 h-5 text-[#1E826C] dark:text-[#2DD4BF]" />
               <span>Full Data Export</span>
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
               Download your complete Kaivex personal data across all modules in standard JSON format.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
-          <div className="text-xs text-slate-300 space-y-1">
-            <p className="font-semibold text-white">Includes all entities:</p>
-            <p className="text-slate-400">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#F5F2EB]/60 dark:bg-[#090C11]/50 border border-[#E2DDD5] dark:border-[#1E2738]">
+          <div className="text-xs text-[#57534E] dark:text-[#94A3B8] space-y-1">
+            <p className="font-semibold text-[#1C1917] dark:text-[#F8FAFC]">Includes all entities:</p>
+            <p className="text-[#78716C] dark:text-[#94A3B8]">
               Habits, Habit Logs, Sleep Entries, Nap Entries, Running Sessions, Pipeline Leads, Tasks, and Settings.
             </p>
           </div>
@@ -152,7 +152,7 @@ export default function SettingsPage() {
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-[#1E826C] hover:bg-[#176655] dark:bg-[#2DD4BF] dark:hover:bg-[#14B8A6] text-white dark:text-[#090C11] font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
           >
             <Download className="w-4 h-4" />
             <span>{exporting ? 'Generating JSON...' : 'Download my data'}</span>
@@ -162,14 +162,14 @@ export default function SettingsPage() {
 
       {/* 2. SLEEP ALGORITHM SETTINGS */}
       {settings && (
-        <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
                 <Moon className="w-5 h-5 text-indigo-400" />
                 <span>Sleep Quality Algorithm Constants</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
                 TRD Section 4 formula constants stored in sleep_settings (not hardcoded).
               </p>
             </div>
@@ -184,33 +184,33 @@ export default function SettingsPage() {
           <form onSubmit={handleSaveSettings} className="space-y-4 text-xs">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+                <label className="block font-semibold uppercase text-[#78716C] dark:text-[#94A3B8] mb-1.5">
                   Target Bedtime (Default 22:00)
                 </label>
                 <input
                   type="time"
                   value={settings.target_bedtime}
                   onChange={(e) => setSettings({ ...settings, target_bedtime: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] font-mono text-sm"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+                <label className="block font-semibold uppercase text-[#78716C] dark:text-[#94A3B8] mb-1.5">
                   Target Wake Time (Default 05:00)
                 </label>
                 <input
                   type="time"
                   value={settings.target_wake_time}
                   onChange={(e) => setSettings({ ...settings, target_wake_time: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] font-mono text-sm"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+                <label className="block font-semibold uppercase text-[#78716C] dark:text-[#94A3B8] mb-1.5">
                   Weight Duration (0.40)
                 </label>
                 <input
@@ -222,12 +222,12 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setSettings({ ...settings, weight_duration: parseFloat(e.target.value) })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+                <label className="block font-semibold uppercase text-[#78716C] dark:text-[#94A3B8] mb-1.5">
                   Weight Bedtime (0.30)
                 </label>
                 <input
@@ -239,12 +239,12 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setSettings({ ...settings, weight_bedtime: parseFloat(e.target.value) })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+                <label className="block font-semibold uppercase text-[#78716C] dark:text-[#94A3B8] mb-1.5">
                   Weight Wake Time (0.30)
                 </label>
                 <input
@@ -256,14 +256,14 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setSettings({ ...settings, weight_wake: parseFloat(e.target.value) })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+                <label className="block font-semibold uppercase text-[#78716C] dark:text-[#94A3B8] mb-1.5">
                   Nap Threshold (Minutes, Default 60)
                 </label>
                 <input
@@ -275,12 +275,12 @@ export default function SettingsPage() {
                       nap_threshold_minutes: parseInt(e.target.value, 10),
                     })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+                <label className="block font-semibold uppercase text-[#78716C] dark:text-[#94A3B8] mb-1.5">
                   Nap Penalty Per Minute (Default 0.5)
                 </label>
                 <input
@@ -293,14 +293,14 @@ export default function SettingsPage() {
                       nap_penalty_per_minute: parseFloat(e.target.value),
                     })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+                <label className="block font-semibold uppercase text-[#78716C] dark:text-[#94A3B8] mb-1.5">
                   Late Nap Cutoff (Default 16:00 / 4 PM)
                 </label>
                 <input
@@ -309,12 +309,12 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setSettings({ ...settings, nap_late_cutoff: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] font-mono"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+                <label className="block font-semibold uppercase text-[#78716C] dark:text-[#94A3B8] mb-1.5">
                   Late Nap Penalty Multiplier (Default 1.5x)
                 </label>
                 <input
@@ -327,7 +327,7 @@ export default function SettingsPage() {
                       late_nap_penalty_factor: parseFloat(e.target.value),
                     })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC]"
                 />
               </div>
             </div>
@@ -336,7 +336,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-[#1C1917] dark:text-[#F8FAFC] font-bold text-xs shadow-lg shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 <span>{saving ? 'Saving Settings...' : 'Save Algorithm Constants'}</span>
@@ -347,22 +347,22 @@ export default function SettingsPage() {
       )}
 
       {/* 3. SUPABASE CLOUD DATABASE CONNECTION */}
-      <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-3xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+      <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
           <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Database className="w-5 h-5 text-cyan-400" />
+            <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
+              <Database className="w-5 h-5 text-[#1E826C] dark:text-[#2DD4BF]" />
               <span>PostgreSQL Cloud Database (Supabase)</span>
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Target: <code className="text-slate-300">https://hxswtcmnnpmiyzunfarv.supabase.co</code>
+            <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
+              Target: <code className="text-[#57534E] dark:text-[#94A3B8]">https://hxswtcmnnpmiyzunfarv.supabase.co</code>
             </p>
           </div>
 
           <button
             onClick={checkSupabase}
             disabled={dbChecking}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#E2DDD5] dark:bg-[#1E2738] hover:bg-slate-700 text-[#57534E] dark:text-[#94A3B8] text-xs font-semibold cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${dbChecking ? 'animate-spin' : ''}`} />
             <span>Test Connection</span>
@@ -384,8 +384,8 @@ export default function SettingsPage() {
             )}
             <div className="space-y-1">
               <p className="font-semibold">{dbStatus.message}</p>
-              <p className="text-slate-400 text-[11px]">
-                File <code className="text-slate-300">supabase/schema.sql</code> is prepared in this repository with all tables, constraints, indexes, and initial seeds.
+              <p className="text-[#78716C] dark:text-[#94A3B8] text-[11px]">
+                File <code className="text-[#57534E] dark:text-[#94A3B8]">supabase/schema.sql</code> is prepared in this repository with all tables, constraints, indexes, and initial seeds.
               </p>
             </div>
           </div>
@@ -393,25 +393,25 @@ export default function SettingsPage() {
       </div>
 
       {/* 4. PIN AUTH & SECURITY */}
-      <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-3xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+      <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
           <div>
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
               <Shield className="w-5 h-5 text-emerald-400" />
               <span>Authentication & Session Security</span>
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
               PIN-only gate per TRD Section 7.
             </p>
           </div>
         </div>
 
-        <div className="space-y-2 text-xs text-slate-400">
+        <div className="space-y-2 text-xs text-[#78716C] dark:text-[#94A3B8]">
           <p>
-            • System is secured with PIN <strong className="text-white">6842</strong>.
+            • System is secured with PIN <strong className="text-[#1C1917] dark:text-[#F8FAFC]">6842</strong>.
           </p>
           <p>
-            • Access generates a signed, encrypted <code className="text-slate-300">httpOnly</code> session cookie valid for 30 days on trusted devices.
+            • Access generates a signed, encrypted <code className="text-[#57534E] dark:text-[#94A3B8]">httpOnly</code> session cookie valid for 30 days on trusted devices.
           </p>
           <p>
             • No passwords, usernames, or third-party auth services required.

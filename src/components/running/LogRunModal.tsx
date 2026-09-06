@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Activity, X } from 'lucide-react';
+import { Activity, X, Calendar, Gauge, Clock, FileText } from 'lucide-react';
 import { Run } from '@/types';
+import { DEFAULT_USER_ID } from '@/lib/constants';
 
 interface LogRunModalProps {
   isOpen: boolean;
@@ -63,7 +64,7 @@ export default function LogRunModal({
     if (isNaN(dist) || isNaN(dur)) return;
 
     onSave({
-      user_id: '00000000-0000-0000-0000-000000000001',
+      user_id: DEFAULT_USER_ID,
       date,
       distance_km: dist,
       duration_minutes: dur,
@@ -76,21 +77,25 @@ export default function LogRunModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-[#0d131f] border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 text-emerald-400" />
-            <span>{editingRun ? 'Edit Run' : 'Log Running Session'}</span>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+      <div className="w-full max-w-md bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] rounded-3xl p-6 shadow-2xl space-y-4 transition-colors">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
+          <h3 className="text-lg font-bold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
+            <Activity className="w-5 h-5 text-[#1E826C] dark:text-[#2DD4BF]" />
+            <span>{editingRun ? 'Edit Run Record' : 'Log Running Session'}</span>
           </h3>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-[#78716C] hover:text-[#1C1917] dark:hover:text-[#F8FAFC]"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+            <label className="block font-bold uppercase tracking-wide text-[#78716C] dark:text-[#94A3B8] mb-1.5 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-[#1E826C] dark:text-[#2DD4BF]" />
               Date (Universal Backdating)
             </label>
             <input
@@ -98,13 +103,14 @@ export default function LogRunModal({
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm focus:outline-none focus:border-emerald-500"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] font-mono text-sm focus:outline-none focus:border-[#1E826C] dark:focus:border-[#2DD4BF]"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+              <label className="block font-bold uppercase tracking-wide text-[#78716C] dark:text-[#94A3B8] mb-1.5 flex items-center gap-1.5">
+                <Gauge className="w-3.5 h-3.5 text-[#1E826C] dark:text-[#2DD4BF]" />
                 Distance (km)
               </label>
               <input
@@ -117,12 +123,13 @@ export default function LogRunModal({
                   setDistanceKm(e.target.value);
                   handleCalculatePace(e.target.value, durationMinutes);
                 }}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm focus:outline-none focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] font-mono text-sm focus:outline-none focus:border-[#1E826C] dark:focus:border-[#2DD4BF]"
               />
             </div>
 
             <div>
-              <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+              <label className="block font-bold uppercase tracking-wide text-[#78716C] dark:text-[#94A3B8] mb-1.5 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#1E826C] dark:text-[#2DD4BF]" />
                 Duration (minutes)
               </label>
               <input
@@ -135,13 +142,13 @@ export default function LogRunModal({
                   setDurationMinutes(e.target.value);
                   handleCalculatePace(distanceKm, e.target.value);
                 }}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm focus:outline-none focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] font-mono text-sm focus:outline-none focus:border-[#1E826C] dark:focus:border-[#2DD4BF]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-400 mb-1.5">
+            <label className="block font-bold uppercase tracking-wide text-[#78716C] dark:text-[#94A3B8] mb-1.5">
               Calculated Pace (min/km)
             </label>
             <input
@@ -150,34 +157,35 @@ export default function LogRunModal({
               value={pace}
               onChange={(e) => setPace(e.target.value)}
               placeholder="5:30"
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-emerald-400 font-mono text-sm font-bold focus:outline-none focus:border-emerald-500"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1E826C] dark:text-[#2DD4BF] font-mono text-sm font-bold focus:outline-none focus:border-[#1E826C] dark:focus:border-[#2DD4BF]"
             />
           </div>
 
           <div>
-            <label className="block font-semibold uppercase text-slate-400 mb-1.5">
-              Notes (Route, Heart Rate, Elevation, Feeling)
+            <label className="block font-bold uppercase tracking-wide text-[#78716C] dark:text-[#94A3B8] mb-1.5 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-[#78716C] dark:text-[#94A3B8]" />
+              Notes (Route, Heart Rate, Feeling)
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Zone 2 aerobic base, cool morning breeze, felt strong"
               rows={3}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              className="w-full px-4 py-2.5 rounded-xl bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738] text-[#1C1917] dark:text-[#F8FAFC] placeholder-[#78716C]/50 focus:outline-none focus:border-[#1E826C] dark:focus:border-[#2DD4BF] resize-none"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E2DDD5] dark:border-[#1E2738]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl font-semibold text-slate-400 hover:text-white"
+              className="px-4 py-2 rounded-xl font-bold text-[#78716C] hover:text-[#1C1917] dark:hover:text-[#F8FAFC]"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 cursor-pointer"
+              className="px-5 py-2 rounded-xl font-bold bg-[#1E826C] hover:bg-[#176655] dark:bg-[#2DD4BF] dark:hover:bg-[#14B8A6] text-white dark:text-[#090C11] shadow transition-all cursor-pointer"
             >
               {editingRun ? 'Save Changes' : 'Record Run'}
             </button>

@@ -420,10 +420,25 @@ export async function recalculateSleepQualityForDate(date: string): Promise<void
 
 // ----------------- RUNS -----------------
 export async function getRuns(): Promise<Run[]> {
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/runs');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.runs) && data.runs.length > 0) {
+          setLocal('runs', data.runs);
+          return data.runs;
+        }
+      }
+    } catch (err) {
+      console.warn('API getRuns error:', err);
+    }
+  }
+
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('runs').select('*').order('date', { ascending: false });
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         setLocal('runs', data);
         return data;
       }
@@ -448,6 +463,33 @@ export async function saveRun(runInput: Omit<Run, 'id'> & { id?: string }): Prom
     created_at: runInput.created_at || new Date().toISOString(),
   };
 
+  // Optimistically store in local state first so UI updates immediately
+  const existingRuns = getLocal<Run[]>('runs', []);
+  const filtered = existingRuns.filter(r => r.id !== run.id);
+  setLocal('runs', [run, ...filtered]);
+
+  // Persist to server API route
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/runs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(run),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.run) {
+          const updated = [result.run, ...filtered];
+          setLocal('runs', updated);
+          return result.run;
+        }
+      }
+    } catch (err) {
+      console.warn('API saveRun fallback:', err);
+    }
+  }
+
+  // Direct Supabase fallback
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.from('runs').upsert(run).select().single();
@@ -459,13 +501,21 @@ export async function saveRun(runInput: Omit<Run, 'id'> & { id?: string }): Prom
     }
   }
 
-  const runs = getLocal<Run[]>('runs', []);
-  const filtered = runs.filter(r => r.id !== run.id);
-  setLocal('runs', [run, ...filtered]);
   return run;
 }
 
 export async function deleteRun(id: string): Promise<void> {
+  const runs = getLocal<Run[]>('runs', []);
+  setLocal('runs', runs.filter(r => r.id !== id));
+
+  if (typeof window !== 'undefined') {
+    try {
+      await fetch(`/api/runs?id=${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.warn('API deleteRun error:', err);
+    }
+  }
+
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase.from('runs').delete().eq('id', id);
@@ -473,9 +523,8 @@ export async function deleteRun(id: string): Promise<void> {
       console.warn('Supabase deleteRun fallback:', err);
     }
   }
-  const runs = getLocal<Run[]>('runs', []);
-  setLocal('runs', runs.filter(r => r.id !== id));
 }
+
 
 // ----------------- LINKEDIN PIPELINE -----------------
 export async function getPipelineStages(): Promise<PipelineStage[]> {

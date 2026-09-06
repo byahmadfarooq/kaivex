@@ -173,20 +173,20 @@ export default function SleepPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold tracking-tight text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2.5">
             <Moon className="w-6 h-6 text-indigo-400" />
             <span>Sleep & Recovery Tracker</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
             Night sleep quality algorithm with circadian alignment and nap penalty heuristic.
           </p>
         </div>
 
         <button
           onClick={() => setShowSettingsModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 border border-slate-700/60 hover:border-slate-600 text-slate-300 hover:text-white transition-all cursor-pointer w-fit"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#F5F2EB] dark:bg-[#090C11] border border-[#E2DDD5] dark:border-[#1E2738]/60 hover:border-slate-600 text-slate-300 hover:text-[#1C1917] dark:text-[#F8FAFC] transition-all cursor-pointer w-fit"
         >
-          <SettingsIcon className="w-4 h-4 text-cyan-400" />
+          <SettingsIcon className="w-4 h-4 text-[#1E826C] dark:text-[#2DD4BF]" />
           <span>Algorithm Settings</span>
         </button>
       </div>

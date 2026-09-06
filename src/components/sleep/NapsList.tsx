@@ -25,15 +25,15 @@ export default function NapsList({
   onDeleteNap,
 }: NapsListProps) {
   return (
-    <div className="bg-[#0d131f]/80 border border-slate-800/80 rounded-3xl p-6 shadow-xl space-y-4">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div className="bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors rounded-3xl p-6 shadow-xl space-y-4">
+      <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD5] dark:border-[#1E2738]">
         <div>
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
             <Coffee className="w-5 h-5 text-amber-400" />
             <span>Daytime Naps ({format(parseISO(selectedDate + 'T12:00:00'), 'MMM d')})</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Total: <span className="font-semibold text-white">{totalNapMins} mins</span> · Threshold: {settings?.nap_threshold_minutes} mins
+          <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
+            Total: <span className="font-semibold text-[#1C1917] dark:text-[#F8FAFC]">{totalNapMins} mins</span> · Threshold: {settings?.nap_threshold_minutes} mins
           </p>
         </div>
 
@@ -55,14 +55,14 @@ export default function NapsList({
           return (
             <div
               key={nap.id}
-              className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate-700/60 transition-all"
+              className="flex items-center justify-between p-3 rounded-2xl bg-[#F5F2EB]/60 dark:bg-[#090C11]/50 border border-[#E2DDD5] dark:border-[#1E2738] hover:border-slate-700/60 transition-all"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-xs">
                   {nap.duration_minutes}m
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-white flex items-center gap-2">
+                  <div className="text-sm font-semibold text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2">
                     <span>
                       {format(startD, 'hh:mm a')} – {format(endD, 'hh:mm a')}
                     </span>
@@ -72,14 +72,14 @@ export default function NapsList({
                       </span>
                     )}
                   </div>
-                  {nap.notes && <p className="text-xs text-slate-400">{nap.notes}</p>}
+                  {nap.notes && <p className="text-xs text-[#78716C] dark:text-[#94A3B8]">{nap.notes}</p>}
                 </div>
               </div>
 
               <button
                 onClick={() => onDeleteNap(nap.id)}
                 title="Delete nap"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-[#78716C] dark:text-[#94A3B8] hover:text-rose-400 hover:bg-rose-950/20 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -88,7 +88,7 @@ export default function NapsList({
         })}
 
         {naps.length === 0 && (
-          <div className="py-8 text-center text-slate-500 text-xs">
+          <div className="py-8 text-center text-[#78716C] dark:text-[#64748B] text-xs">
             No naps logged for this date.
           </div>
         )}

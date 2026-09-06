@@ -149,27 +149,27 @@ export default function TasksPage() {
       {/* Header with Week Switcher */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <Kanban className="w-6 h-6 text-cyan-400" />
+          <h1 className="text-2xl font-bold tracking-tight text-[#1C1917] dark:text-[#F8FAFC] flex items-center gap-2.5">
+            <Kanban className="w-6 h-6 text-[#1E826C] dark:text-[#2DD4BF]" />
             <span>Weekly Kanban Board</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#78716C] dark:text-[#94A3B8] mt-0.5">
             Full 7-day Monday through Sunday workflow. Move cards between days with zero friction.
           </p>
         </div>
 
         {/* Week Switcher Controls */}
-        <div className="flex items-center gap-2 bg-[#0d131f]/90 border border-slate-800/80 p-1.5 rounded-2xl shadow-lg">
+        <div className="flex items-center gap-2 bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors p-1.5 rounded-2xl shadow-lg">
           <button
             onClick={handlePrevWeek}
             title="Previous Week"
-            className="p-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700/40"
+            className="p-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-[#57534E] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC] transition-colors cursor-pointer border border-slate-700/40"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
           <div className="flex items-center gap-2 px-2 text-xs font-semibold text-slate-200">
-            <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+            <Calendar className="w-3.5 h-3.5 text-[#1E826C] dark:text-[#2DD4BF]" />
             <span>
               {format(currentMonday, 'MMM d')} – {format(weekEndDate, 'MMM d, yyyy')}
             </span>
@@ -178,7 +178,7 @@ export default function TasksPage() {
           <button
             onClick={handleNextWeek}
             title="Next Week"
-            className="p-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 hover:text-white transition-colors cursor-pointer border border-slate-700/40"
+            className="p-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700/80 text-[#57534E] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC] transition-colors cursor-pointer border border-slate-700/40"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -193,19 +193,19 @@ export default function TasksPage() {
       </div>
 
       {/* Metric Strip & Filter */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-[#0d131f]/80 border border-slate-800/80 p-4 rounded-3xl">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-[#111622] border border-[#E2DDD5] dark:border-[#1E2738] shadow-sm dark:shadow-xl transition-colors p-4 rounded-3xl">
         <div className="flex items-center gap-6 text-xs">
           <div>
-            <span className="text-slate-400">Total Tasks: </span>
-            <span className="font-bold text-white text-sm">{totalCount}</span>
+            <span className="text-[#78716C] dark:text-[#94A3B8]">Total Tasks: </span>
+            <span className="font-bold text-[#1C1917] dark:text-[#F8FAFC] text-sm">{totalCount}</span>
           </div>
           <div>
-            <span className="text-slate-400">Completed: </span>
+            <span className="text-[#78716C] dark:text-[#94A3B8]">Completed: </span>
             <span className="font-bold text-emerald-400 text-sm">{completedCount}</span>
           </div>
           <div>
-            <span className="text-slate-400">Progress: </span>
-            <span className="font-bold text-cyan-400 text-sm">{completionPct}%</span>
+            <span className="text-[#78716C] dark:text-[#94A3B8]">Progress: </span>
+            <span className="font-bold text-[#1E826C] dark:text-[#2DD4BF] text-sm">{completionPct}%</span>
           </div>
         </div>
 
@@ -215,7 +215,7 @@ export default function TasksPage() {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
               hideCompleted
                 ? 'bg-cyan-950/40 text-cyan-300 border-cyan-800/60'
-                : 'bg-slate-800/40 text-slate-400 border-slate-700/40 hover:text-slate-200'
+                : 'bg-slate-800/40 text-[#78716C] dark:text-[#94A3B8] border-slate-700/40 hover:text-slate-200'
             }`}
           >
             <Filter className="w-3.5 h-3.5" />
@@ -224,7 +224,7 @@ export default function TasksPage() {
 
           <button
             onClick={() => handleOpenAdd('Monday')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1E826C] hover:bg-[#176655] dark:bg-[#2DD4BF] dark:hover:bg-[#14B8A6] text-white dark:text-[#090C11] shadow-md shadow-cyan-500/20 transition-all cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New Task</span>
@@ -255,16 +255,16 @@ export default function TasksPage() {
                   ? 'bg-[#0f172a]/95 border-cyan-500/50 shadow-xl shadow-cyan-500/10'
                   : isSelectedDay
                   ? 'bg-[#0e1422]/90 border-slate-700'
-                  : 'bg-[#0a0f1a]/80 border-slate-800/80'
+                  : 'bg-[#F5F2EB]/90 dark:bg-[#0D121D] border-[#E2DDD5] dark:border-[#1E2738]'
               }`}
             >
               {/* Column Header */}
-              <div className="p-3.5 border-b border-slate-800/80 flex items-center justify-between">
+              <div className="p-3.5 border-b border-[#E2DDD5] dark:border-[#1E2738] flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span
                       className={`text-xs font-bold uppercase tracking-wider ${
-                        isTodayCol ? 'text-cyan-400' : 'text-slate-200'
+                        isTodayCol ? 'text-[#1E826C] dark:text-[#2DD4BF]' : 'text-slate-200'
                       }`}
                     >
                       {day}
@@ -273,17 +273,17 @@ export default function TasksPage() {
                       <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                     )}
                   </div>
-                  <span className="text-[11px] text-slate-400">{format(colDate, 'MMM d')}</span>
+                  <span className="text-[11px] text-[#78716C] dark:text-[#94A3B8]">{format(colDate, 'MMM d')}</span>
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <span className="text-[11px] font-semibold text-slate-500">
+                  <span className="text-[11px] font-semibold text-[#78716C] dark:text-[#64748B]">
                     {dayCompleted}/{dayTotal}
                   </span>
                   <button
                     onClick={() => handleOpenAdd(day)}
                     title={`Add task to ${day}`}
-                    className="p-1 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-[#78716C] dark:text-[#94A3B8] hover:text-[#1C1917] dark:text-[#F8FAFC] transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
@@ -305,7 +305,7 @@ export default function TasksPage() {
                 {dayTasks.length === 0 && (
                   <div
                     onClick={() => handleOpenAdd(day)}
-                    className="h-28 rounded-2xl border border-dashed border-slate-800/80 hover:border-slate-700/80 flex flex-col items-center justify-center text-slate-600 hover:text-slate-400 transition-colors cursor-pointer p-3 text-center"
+                    className="h-28 rounded-2xl border border-dashed border-[#E2DDD5] dark:border-[#1E2738] hover:border-slate-700/80 flex flex-col items-center justify-center text-slate-600 hover:text-[#78716C] dark:text-[#94A3B8] transition-colors cursor-pointer p-3 text-center"
                   >
                     <Plus className="w-4 h-4 mb-1 opacity-50" />
                     <span className="text-[11px]">No tasks</span>
