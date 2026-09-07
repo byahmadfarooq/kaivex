@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { Space_Grotesk, Inter, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { DateProvider } from '@/context/DateContext';
@@ -47,7 +47,7 @@ export default function RootLayout({
           <DateProvider>
             <div className="flex flex-col min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] transition-colors duration-200">
               <Navbar />
-              <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+              <main className="flex-1 max-w-[1800px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6">
                 {children}
               </main>
             </div>

@@ -90,7 +90,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#EBE3D3]/90 dark:bg-[#0B0F14]/90 backdrop-blur-xl border-b border-[#CFC3AB] dark:border-[#1D2830] transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-[1800px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 h-16 flex items-center justify-between gap-4">
         {/* Brand Lockup */}
         <Link href="/" className="flex items-center gap-2 group">
           <KaivexLogo size="md" />

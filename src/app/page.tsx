@@ -18,7 +18,9 @@ import {
   getDailyLogs,
   saveDailyLog,
 } from '@/lib/storage';
-import { Habit, HabitLog, SleepEntry, NapEntry, Task, Run, SleepSettings, DailyLogEntry } from '@/types';
+import { Habit, HabitLog, SleepEntry, NapEntry, Task, Run, SleepSettings, DailyLogEntry, DayOfWeek, TaskPriority } from '@/types';
+import { DAYS_OF_WEEK } from '@/lib/constants';
+import AddTaskModal from '@/components/tasks/AddTaskModal';
 import {
   CheckSquare,
   Square,
@@ -32,8 +34,9 @@ import {
   AlertCircle,
   ListPlus,
   Send,
+  Pencil,
 } from 'lucide-react';
-import { format, parseISO, startOfWeek } from 'date-fns';
+import { format, parseISO, startOfWeek, addDays } from 'date-fns';
 
 export default function DashboardPage() {
   const { selectedDate } = useDate();
@@ -43,6 +46,7 @@ export default function DashboardPage() {
   const [sleepEntry, setSleepEntry] = useState<SleepEntry | null>(null);
   const [naps, setNaps] = useState<NapEntry[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
   const [dailyLogs, setDailyLogs] = useState<DailyLogEntry[]>([]);
   const [settings, setSettings] = useState<SleepSettings | null>(null);
@@ -177,6 +181,37 @@ export default function DashboardPage() {
 
     setTasks((prev) => [...prev, newTask]);
     setQuickTaskTitle('');
+  };
+
+  // Save edited task from dashboard modal
+  const handleSaveEditedTask = async (taskData: {
+    id?: string;
+    title: string;
+    notes?: string | null;
+    priority?: TaskPriority | null;
+    day_of_week: DayOfWeek;
+  }) => {
+    if (taskData.id) {
+      const existing = tasks.find((t) => t.id === taskData.id);
+      const center = parseISO(selectedDate + 'T12:00:00');
+      const monday = startOfWeek(center, { weekStartsOn: 1 });
+      const dayIndex = DAYS_OF_WEEK.indexOf(taskData.day_of_week);
+      const taskDate = format(addDays(monday, dayIndex), 'yyyy-MM-dd');
+
+      await saveTask({
+        ...existing,
+        id: taskData.id,
+        title: taskData.title,
+        notes: taskData.notes || null,
+        priority: taskData.priority || null,
+        day_of_week: taskData.day_of_week,
+        week_start_date: format(monday, 'yyyy-MM-dd'),
+        date: taskDate,
+      });
+
+      setEditingTask(null);
+      loadDashboardData();
+    }
   };
 
   // Quick add log to Daily Stream
@@ -493,32 +528,47 @@ export default function DashboardPage() {
               {todayTasks.map((task) => (
                 <div
                   key={task.id}
-                  onClick={() => handleToggleTask(task.id, !task.is_done)}
-                  className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
+                  className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
                     task.is_done
                       ? 'bg-[#EBE3D3]/50 dark:bg-[#0B0F14]/40 border-[#CFC3AB]/50 dark:border-[#1D2830]/50 text-[#6B655F] dark:text-[#98A6AD]'
                       : 'bg-[#EBE3D3] dark:bg-[#0B0F14] border-[#CFC3AB] dark:border-[#1D2830] hover:border-[#B5A88F] text-[#14181B] dark:text-[#E7ECEC]'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div
+                    onClick={() => handleToggleTask(task.id, !task.is_done)}
+                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                  >
                     <button
                       type="button"
-                      className={`w-4 h-4 rounded transition-colors ${
+                      className={`w-4 h-4 rounded transition-colors shrink-0 ${
                         task.is_done ? 'text-[#2E9C82] dark:text-[#8FE0CE]' : 'text-[#6B655F] dark:text-[#98A6AD]'
                       }`}
                     >
                       {task.is_done ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                     </button>
-                    <span className={`text-xs font-semibold ${task.is_done ? 'line-through opacity-70' : ''}`}>
+                    <span className={`text-xs font-semibold break-words ${task.is_done ? 'line-through opacity-70' : ''}`}>
                       {task.title}
                     </span>
                   </div>
 
-                  {task.priority && (
-                    <span className="text-[10px] uppercase font-bold font-mono text-[#6B655F] dark:text-[#98A6AD] px-2 py-0.5 rounded bg-[#DDD5C3] dark:bg-[#17222C] border border-[#CFC3AB] dark:border-[#1D2830]">
-                      {task.priority}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {task.priority && (
+                      <span className="text-[10px] uppercase font-bold font-mono text-[#6B655F] dark:text-[#98A6AD] px-2 py-0.5 rounded bg-[#DDD5C3] dark:bg-[#17222C] border border-[#CFC3AB] dark:border-[#1D2830]">
+                        {task.priority}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingTask(task);
+                      }}
+                      title="Edit task"
+                      className="p-1 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-[#D9551F] dark:hover:text-[#FF7A47] hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
 
@@ -650,6 +700,16 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <AddTaskModal
+          isOpen={true}
+          onClose={() => setEditingTask(null)}
+          taskToEdit={editingTask}
+          onSave={handleSaveEditedTask}
+        />
+      )}
     </div>
   );
 }

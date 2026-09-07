@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -160,7 +160,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12 max-w-4xl mx-auto">
+    <div className="space-y-6 pb-12 w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#CFC3AB] dark:border-[#1D2830]">
         <div>
@@ -401,76 +401,79 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* 3. SUPABASE CLOUD DATABASE CONNECTION */}
-      <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-sm space-y-4 transition-colors">
-        <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB] dark:border-[#1D2830]">
-          <div>
-            <h2 className="text-base font-display font-bold text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2">
-              <Database className="w-5 h-5 text-[#2E9C82] dark:text-[#8FE0CE]" />
-              <span>PostgreSQL Cloud Database (Supabase)</span>
-            </h2>
-            <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-mono">
-              Target: <code className="text-[#4A4540] dark:text-[#E7ECEC]">https://hxswtcmnnpmiyzunfarv.supabase.co</code>
-            </p>
+      {/* 3 & 4. CLOUD DATABASE & SECURITY (2-Column Grid on Wide Screens) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 3. SUPABASE CLOUD DATABASE CONNECTION */}
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-sm space-y-4 transition-colors">
+          <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB] dark:border-[#1D2830]">
+            <div>
+              <h2 className="text-base font-display font-bold text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2">
+                <Database className="w-5 h-5 text-[#2E9C82] dark:text-[#8FE0CE]" />
+                <span>PostgreSQL Cloud Database</span>
+              </h2>
+              <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5 font-mono">
+                Target: <code className="text-[#4A4540] dark:text-[#E7ECEC]">https://hxswtcmnnpmiyzunfarv.supabase.co</code>
+              </p>
+            </div>
+
+            <button
+              onClick={checkSupabase}
+              disabled={dbChecking}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EBE3D3] dark:bg-[#17222C] hover:bg-[#D6CDBC] dark:hover:bg-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] text-xs font-semibold cursor-pointer disabled:opacity-50 border border-[#CFC3AB] dark:border-[#1D2830]"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${dbChecking ? 'animate-spin' : ''}`} />
+              <span>Test Connection</span>
+            </button>
           </div>
 
-          <button
-            onClick={checkSupabase}
-            disabled={dbChecking}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EBE3D3] dark:bg-[#17222C] hover:bg-[#D6CDBC] dark:hover:bg-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] text-xs font-semibold cursor-pointer disabled:opacity-50 border border-[#CFC3AB] dark:border-[#1D2830]"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${dbChecking ? 'animate-spin' : ''}`} />
-            <span>Test Connection</span>
-          </button>
+          {dbStatus && (
+            <div
+              className={`p-4 rounded-2xl border text-xs flex items-start gap-3 ${
+                dbStatus.connected
+                  ? 'bg-emerald-500/10 border-emerald-600/30 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-amber-500/10 border-amber-600/30 text-amber-800 dark:text-amber-300'
+              }`}
+            >
+              {dbStatus.connected ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+              )}
+              <div className="space-y-1">
+                <p className="font-semibold">{dbStatus.message}</p>
+                <p className="text-[#6B655F] dark:text-[#98A6AD] text-[11px] font-mono">
+                  File <code className="text-[#14181B] dark:text-[#E7ECEC]">supabase/schema.sql</code> is prepared with all tables, constraints, indexes, and initial seeds.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {dbStatus && (
-          <div
-            className={`p-4 rounded-2xl border text-xs flex items-start gap-3 ${
-              dbStatus.connected
-                ? 'bg-emerald-500/10 border-emerald-600/30 text-emerald-800 dark:text-emerald-300'
-                : 'bg-amber-500/10 border-amber-600/30 text-amber-800 dark:text-amber-300'
-            }`}
-          >
-            {dbStatus.connected ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-            )}
-            <div className="space-y-1">
-              <p className="font-semibold">{dbStatus.message}</p>
-              <p className="text-[#6B655F] dark:text-[#98A6AD] text-[11px] font-mono">
-                File <code className="text-[#14181B] dark:text-[#E7ECEC]">supabase/schema.sql</code> is prepared with all tables, constraints, indexes, and initial seeds.
+        {/* 4. PIN AUTH & SECURITY */}
+        <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-sm space-y-4 transition-colors">
+          <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB] dark:border-[#1D2830]">
+            <div>
+              <h2 className="text-base font-display font-bold text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2">
+                <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <span>Authentication & Session Security</span>
+              </h2>
+              <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5">
+                PIN-only gate per TRD Section 7.
               </p>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* 4. PIN AUTH & SECURITY */}
-      <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-6 shadow-sm space-y-4 transition-colors">
-        <div className="flex items-center justify-between pb-3 border-b border-[#CFC3AB] dark:border-[#1D2830]">
-          <div>
-            <h2 className="text-base font-display font-bold text-[#14181B] dark:text-[#E7ECEC] flex items-center gap-2">
-              <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              <span>Authentication & Session Security</span>
-            </h2>
-            <p className="text-xs text-[#6B655F] dark:text-[#98A6AD] mt-0.5">
-              PIN-only gate per TRD Section 7.
+          <div className="space-y-2 text-xs text-[#4A4540] dark:text-[#C2C9CA]">
+            <p>
+              • System is secured with PIN <strong className="text-[#14181B] dark:text-[#E7ECEC] font-mono">6842</strong>.
+            </p>
+            <p>
+              • Access generates a signed, encrypted <code className="font-mono text-[#D9551F] dark:text-[#FF7A47]">httpOnly</code> session cookie valid for 30 days on trusted devices.
+            </p>
+            <p>
+              • Zero third-party telemetry, zero external login dependencies. Fast, offline-first.
             </p>
           </div>
-        </div>
-
-        <div className="space-y-2 text-xs text-[#4A4540] dark:text-[#C2C9CA]">
-          <p>
-            • System is secured with PIN <strong className="text-[#14181B] dark:text-[#E7ECEC] font-mono">6842</strong>.
-          </p>
-          <p>
-            • Access generates a signed, encrypted <code className="font-mono text-[#D9551F] dark:text-[#FF7A47]">httpOnly</code> session cookie valid for 30 days on trusted devices.
-          </p>
-          <p>
-            • Zero third-party telemetry, zero external login dependencies. Fast, offline-first.
-          </p>
         </div>
       </div>
     </div>

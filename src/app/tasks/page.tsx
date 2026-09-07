@@ -43,6 +43,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [modalDefaultDay, setModalDefaultDay] = useState<DayOfWeek>('Monday');
   const [hideCompleted, setHideCompleted] = useState(false);
 
@@ -107,12 +108,21 @@ export default function TasksPage() {
 
   // Open add modal for specific day
   const handleOpenAddForDay = (day: DayOfWeek) => {
+    setEditingTask(null);
     setModalDefaultDay(day);
     setShowAddModal(true);
   };
 
-  // Save new task
-  const handleSaveNewTask = async (taskData: {
+  // Open edit modal for a task
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setModalDefaultDay(task.day_of_week);
+    setShowAddModal(true);
+  };
+
+  // Save new or edited task
+  const handleSaveTask = async (taskData: {
+    id?: string;
     title: string;
     notes?: string | null;
     priority?: TaskPriority | null;
@@ -121,16 +131,31 @@ export default function TasksPage() {
     const dayIndex = DAYS_OF_WEEK.indexOf(taskData.day_of_week);
     const taskDate = format(addDays(currentMonday, dayIndex), 'yyyy-MM-dd');
 
-    await saveTask({
-      title: taskData.title,
-      notes: taskData.notes || null,
-      priority: taskData.priority || null,
-      day_of_week: taskData.day_of_week,
-      week_start_date: weekStartDateStr,
-      date: taskDate,
-    });
+    if (taskData.id) {
+      const existing = tasks.find((t) => t.id === taskData.id);
+      await saveTask({
+        ...existing,
+        id: taskData.id,
+        title: taskData.title,
+        notes: taskData.notes || null,
+        priority: taskData.priority || null,
+        day_of_week: taskData.day_of_week,
+        week_start_date: weekStartDateStr,
+        date: taskDate,
+      });
+    } else {
+      await saveTask({
+        title: taskData.title,
+        notes: taskData.notes || null,
+        priority: taskData.priority || null,
+        day_of_week: taskData.day_of_week,
+        week_start_date: weekStartDateStr,
+        date: taskDate,
+      });
+    }
 
     setShowAddModal(false);
+    setEditingTask(null);
     loadTasks();
   };
 
@@ -192,6 +217,7 @@ export default function TasksPage() {
 
           <button
             onClick={() => {
+              setEditingTask(null);
               setModalDefaultDay('Monday');
               setShowAddModal(true);
             }}
@@ -253,7 +279,7 @@ export default function TasksPage() {
       </div>
 
       {/* 7-Day Kanban Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 items-start">
         {DAYS_OF_WEEK.map((day, idx) => {
           const dayDate = addDays(currentMonday, idx);
           const dayDateStr = format(dayDate, 'yyyy-MM-dd');
@@ -300,6 +326,7 @@ export default function TasksPage() {
                     onToggleDone={handleToggleDone}
                     onDelete={handleDeleteTask}
                     onMoveDay={handleMoveDay}
+                    onEdit={handleEditTask}
                   />
                 ))}
 
@@ -314,12 +341,16 @@ export default function TasksPage() {
         })}
       </div>
 
-      {/* Add Task Modal */}
+      {/* Add / Edit Task Modal */}
       <AddTaskModal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingTask(null);
+        }}
         defaultDay={modalDefaultDay}
-        onSave={handleSaveNewTask}
+        taskToEdit={editingTask}
+        onSave={handleSaveTask}
       />
     </div>
   );

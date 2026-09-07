@@ -166,7 +166,7 @@ export default function PipelinePage() {
           return (
             <div
               key={stage.id}
-              className="w-80 shrink-0 bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-4 flex flex-col min-h-[480px] shadow-sm dark:shadow-xl transition-colors"
+              className="w-80 xl:w-auto xl:min-w-[280px] xl:flex-1 shrink-0 xl:shrink bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-3xl p-4 flex flex-col min-h-[480px] shadow-sm dark:shadow-xl transition-colors"
             >
               {/* Stage Header */}
               <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#CFC3AB]/60 dark:border-[#1D2830]">

@@ -3,13 +3,14 @@
 import React, { useState } from 'react';
 import { Task, DayOfWeek } from '@/types';
 import { DAYS_OF_WEEK } from '@/lib/constants';
-import { Check, Trash2, ArrowRight, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { Check, Trash2, ArrowRight, Pencil } from 'lucide-react';
 
 interface TaskCardProps {
   task: Task;
   onToggleDone: (task: Task) => void;
   onDelete: (task: Task) => void;
   onMoveDay: (task: Task, newDay: DayOfWeek) => void;
+  onEdit?: (task: Task) => void;
 }
 
 export default function TaskCard({
@@ -17,6 +18,7 @@ export default function TaskCard({
   onToggleDone,
   onDelete,
   onMoveDay,
+  onEdit,
 }: TaskCardProps) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
 
@@ -64,15 +66,27 @@ export default function TaskCard({
           </div>
         </div>
 
-        <button
-          onClick={() => onDelete(task)}
-          className="p-1 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(task)}
+              title="Edit task"
+              className="p-1 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-[#D9551F] dark:hover:text-[#FF7A47] hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(task)}
+            title="Delete task"
+            className="p-1 rounded-lg text-[#6B655F] dark:text-[#98A6AD] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
-      {/* Footer / Move Day */}
+      {/* Footer / Move Day & Edit */}
       <div className="mt-2.5 pt-2 border-t border-[#CFC3AB]/50 dark:border-[#1D2830] flex items-center justify-between text-[10px]">
         {task.priority && (
           <span className="font-mono uppercase font-bold text-[#6B655F] dark:text-[#98A6AD]">
@@ -80,14 +94,25 @@ export default function TaskCard({
           </span>
         )}
 
-        <div className="relative ml-auto">
-          <button
-            onClick={() => setShowMoveMenu(!showMoveMenu)}
-            className="flex items-center gap-1 text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] font-semibold"
-          >
-            <span>Move</span>
-            <ArrowRight className="w-2.5 h-2.5" />
-          </button>
+        <div className="flex items-center gap-2.5 ml-auto">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(task)}
+              className="flex items-center gap-1 text-[#6B655F] dark:text-[#98A6AD] hover:text-[#D9551F] dark:hover:text-[#FF7A47] font-semibold cursor-pointer transition-colors"
+            >
+              <Pencil className="w-2.5 h-2.5" />
+              <span>Edit</span>
+            </button>
+          )}
+
+          <div className="relative">
+            <button
+              onClick={() => setShowMoveMenu(!showMoveMenu)}
+              className="flex items-center gap-1 text-[#6B655F] dark:text-[#98A6AD] hover:text-[#14181B] dark:hover:text-[#E7ECEC] font-semibold cursor-pointer transition-colors"
+            >
+              <span>Move</span>
+              <ArrowRight className="w-2.5 h-2.5" />
+            </button>
 
           {showMoveMenu && (
             <div className="absolute right-0 bottom-6 z-20 w-28 bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-xl shadow-xl py-1">
@@ -105,6 +130,7 @@ export default function TaskCard({
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
