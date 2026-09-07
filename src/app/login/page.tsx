@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Shield, Lock, Delete, ArrowRight, Sparkles } from 'lucide-react';
 import KaivexLogo from '@/components/KaivexLogo';
@@ -42,6 +43,9 @@ export default function LoginPage() {
       });
 
       if (res.ok) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('kaivex_session_active', '1');
+        }
         router.push('/');
         router.refresh();
       } else {
@@ -80,6 +84,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#EBE3D3] dark:bg-[#0B0F14] text-[#14181B] dark:text-[#E7ECEC] flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans select-none transition-colors">
+      {/* Background Aesthetic Workspace Backdrop */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <Image
+          src="/hero-workspace.jpg"
+          alt="Kaivex Executive Environment"
+          fill
+          priority
+          className="object-cover object-center opacity-15 dark:opacity-20 scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#EBE3D3]/85 via-[#EBE3D3]/90 to-[#EBE3D3] dark:from-[#0B0F14]/85 dark:via-[#0B0F14]/90 dark:to-[#0B0F14]" />
+      </div>
+
       {/* Ambient background glow */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#2E9C82]/10 dark:bg-[#8FE0CE]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#D9551F]/10 dark:bg-[#FF7A47]/10 rounded-full blur-3xl pointer-events-none" />

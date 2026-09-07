@@ -124,6 +124,32 @@ CREATE TABLE IF NOT EXISTS tasks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS daily_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    time TEXT NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    content TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'general',
+    mood_energy INTEGER CHECK (mood_energy BETWEEN 1 AND 5),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS daily_summaries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    key_win TEXT,
+    lessons_learned TEXT,
+    day_rating INTEGER CHECK (day_rating BETWEEN 1 AND 5),
+    compiled_digest TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, date)
+);
+
 CREATE INDEX IF NOT EXISTS idx_habit_logs_date ON habit_logs(date);
 CREATE INDEX IF NOT EXISTS idx_sleep_entries_date ON sleep_entries(date);
 CREATE INDEX IF NOT EXISTS idx_nap_entries_date ON nap_entries(date);
@@ -131,6 +157,8 @@ CREATE INDEX IF NOT EXISTS idx_runs_date ON runs(date);
 CREATE INDEX IF NOT EXISTS idx_tasks_date ON tasks(date);
 CREATE INDEX IF NOT EXISTS idx_tasks_week_start ON tasks(week_start_date);
 CREATE INDEX IF NOT EXISTS idx_pipeline_contacts_stage ON pipeline_contacts(current_stage_id);
+CREATE INDEX IF NOT EXISTS idx_daily_logs_date ON daily_logs(date);
+CREATE INDEX IF NOT EXISTS idx_daily_summaries_date ON daily_summaries(date);
 
 INSERT INTO sleep_settings (user_id, target_bedtime, target_wake_time, weight_duration, weight_bedtime, weight_wake, penalty_factor, nap_threshold_minutes, nap_penalty_per_minute, nap_late_cutoff, late_nap_penalty_factor)
 VALUES ('00000000-0000-0000-0000-000000000001', '22:00', '05:00', 0.40, 0.30, 0.30, 1.5, 60, 0.5, '16:00', 1.5)
@@ -172,6 +200,8 @@ ALTER TABLE IF EXISTS runs DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS pipeline_stages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS pipeline_contacts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS daily_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS daily_summaries DISABLE ROW LEVEL SECURITY;
 
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;

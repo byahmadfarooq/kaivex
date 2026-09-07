@@ -150,3 +150,30 @@ export interface DailyDashboardData {
   weeklyHabitPercentage: number;
   habitStreakDays: number;
 }
+
+export type LogCategory = 'wake' | 'activity' | 'focus' | 'mood' | 'meal' | 'reflection' | 'general';
+
+export interface DailyLogEntry {
+  id: string;
+  user_id: string;
+  date: string;               // YYYY-MM-DD
+  time: string;               // HH:mm (e.g. "05:15", "14:30")
+  timestamp: string;          // ISO string
+  content: string;            // Text of what you are doing/feeling
+  category: LogCategory;      // Categorization
+  mood_energy?: number | null;// 1 (low/exhausted) to 5 (peak/flow)
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DailySummary {
+  id: string;
+  user_id: string;
+  date: string;               // YYYY-MM-DD
+  key_win?: string | null;    // Major accomplishment
+  lessons_learned?: string | null; // Adjustments or reflections
+  day_rating?: number | null; // 1 to 5
+  compiled_digest?: string | null; // Auto-compiled text summary
+  created_at?: string;
+  updated_at?: string;
+}

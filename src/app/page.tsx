@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
@@ -15,8 +15,10 @@ import {
   toggleTaskDone,
   getRuns,
   getSleepSettings,
+  getDailyLogs,
+  saveDailyLog,
 } from '@/lib/storage';
-import { Habit, HabitLog, SleepEntry, NapEntry, Task, Run, SleepSettings } from '@/types';
+import { Habit, HabitLog, SleepEntry, NapEntry, Task, Run, SleepSettings, DailyLogEntry } from '@/types';
 import {
   CheckSquare,
   Square,
@@ -28,6 +30,8 @@ import {
   CheckCircle2,
   Plus,
   AlertCircle,
+  ListPlus,
+  Send,
 } from 'lucide-react';
 import { format, parseISO, startOfWeek } from 'date-fns';
 
@@ -40,11 +44,13 @@ export default function DashboardPage() {
   const [naps, setNaps] = useState<NapEntry[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
+  const [dailyLogs, setDailyLogs] = useState<DailyLogEntry[]>([]);
   const [settings, setSettings] = useState<SleepSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Quick task input on dashboard
+  // Quick task & quick log inputs on dashboard
   const [quickTaskTitle, setQuickTaskTitle] = useState('');
+  const [quickLogText, setQuickLogText] = useState('');
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
@@ -60,6 +66,7 @@ export default function DashboardPage() {
         fetchedTasks,
         fetchedRuns,
         fetchedSettings,
+        fetchedDailyLogs,
       ] = await Promise.all([
         getHabits(),
         getHabitLogs(selectedDate, selectedDate),
@@ -68,6 +75,7 @@ export default function DashboardPage() {
         getTasks(monday),
         getRuns(),
         getSleepSettings(),
+        getDailyLogs(selectedDate),
       ]);
 
       setHabits(fetchedHabits.filter((h) => h.is_active));
@@ -77,6 +85,7 @@ export default function DashboardPage() {
       setTasks(fetchedTasks);
       setRuns(fetchedRuns);
       setSettings(fetchedSettings);
+      setDailyLogs(fetchedDailyLogs);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
     } finally {
@@ -170,6 +179,27 @@ export default function DashboardPage() {
     setQuickTaskTitle('');
   };
 
+  // Quick add log to Daily Stream
+  const handleQuickLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickLogText.trim()) return;
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    const newLog = await saveDailyLog({
+      user_id: '00000000-0000-0000-0000-000000000001',
+      date: selectedDate,
+      time: timeStr,
+      timestamp: `${selectedDate}T${timeStr}:00.000Z`,
+      content: quickLogText.trim(),
+      category: 'general',
+    });
+
+    setDailyLogs((prev) => [...prev, newLog]);
+    setQuickLogText('');
+  };
+
   const totalNapMins = naps.reduce((acc, n) => acc + (Number(n.duration_minutes) || 0), 0);
 
   return (
@@ -194,6 +224,13 @@ export default function DashboardPage() {
             Habits
           </Link>
           <Link
+            href="/logs"
+            className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] hover:bg-[#D6CDBC] dark:hover:bg-[#1D2830] transition-colors flex items-center gap-1.5"
+          >
+            <ListPlus className="w-3.5 h-3.5 text-[#D9551F] dark:text-[#FF7A47]" />
+            <span>Logs</span>
+          </Link>
+          <Link
             href="/sleep"
             className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] text-[#14181B] dark:text-[#E7ECEC] hover:bg-[#D6CDBC] dark:hover:bg-[#1D2830] transition-colors"
           >
@@ -209,6 +246,43 @@ export default function DashboardPage() {
       </div>
 
       <DateSelector />
+
+      {/* Quick Stream Micro-Log Bar */}
+      <div className="bg-[#E2DAC8] dark:bg-[#121A21] border border-[#CFC3AB] dark:border-[#1D2830] rounded-2xl p-3 shadow-sm transition-colors flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="w-8 h-8 rounded-xl bg-[#D9551F]/15 dark:bg-[#FF7A47]/20 border border-[#D9551F]/30 dark:border-[#FF7A47]/40 flex items-center justify-center flex-shrink-0">
+            <ListPlus className="w-4 h-4 text-[#D9551F] dark:text-[#FF7A47]" />
+          </div>
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#6B655F] dark:text-[#98A6AD] sm:hidden">
+            Quick Log
+          </span>
+        </div>
+
+        <form onSubmit={handleQuickLog} className="flex-1 flex items-center gap-2 w-full">
+          <input
+            type="text"
+            value={quickLogText}
+            onChange={(e) => setQuickLogText(e.target.value)}
+            placeholder={`Log #${dailyLogs.length + 1}: Drop a quick moment or status (e.g., Woke up at 5:00 AM • Deep work session started • Energy peak)...`}
+            className="flex-1 px-3 py-1.5 rounded-xl bg-[#EBE3D3] dark:bg-[#0B0F14] border border-[#CFC3AB] dark:border-[#1D2830] text-xs text-[#14181B] dark:text-[#E7ECEC] placeholder-[#6B655F]/60 focus:outline-none focus:border-[#D9551F] dark:focus:border-[#FF7A47]"
+          />
+          <button
+            type="submit"
+            className="px-3.5 py-1.5 rounded-xl bg-[#D9551F] hover:bg-[#C24816] dark:bg-[#FF7A47] dark:hover:bg-[#FF8E61] text-white dark:text-[#0B0F14] text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm flex-shrink-0"
+          >
+            <Send className="w-3 h-3" />
+            <span>Log #{dailyLogs.length + 1}</span>
+          </button>
+        </form>
+
+        <Link
+          href="/logs"
+          className="text-xs font-mono font-semibold text-[#D9551F] dark:text-[#FF7A47] hover:underline flex items-center gap-1 whitespace-nowrap sm:pl-3 sm:border-l sm:border-[#CFC3AB]/60 dark:sm:border-[#1D2830] self-end sm:self-center"
+        >
+          <span>{dailyLogs.length} logged today</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
 
       {/* Top 4 Quick Metrics Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

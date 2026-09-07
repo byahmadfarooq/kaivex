@@ -1,4 +1,4 @@
-﻿import {
+import {
   DEFAULT_HABITS,
   DEFAULT_PIPELINE_STAGES,
   DEFAULT_SLEEP_SETTINGS,
@@ -17,6 +17,8 @@ import {
   SleepEntry,
   SleepSettings,
   Task,
+  DailyLogEntry,
+  DailySummary,
 } from '../types/index';
 
 // Browser LocalStorage keys with safe prefix
@@ -803,6 +805,143 @@ export async function deleteTask(id: string): Promise<void> {
   }
 }
 
+// ----------------- DAILY MICRO-LOGS & TIMELINE STREAM -----------------
+export async function getDailyLogs(date?: string): Promise<DailyLogEntry[]> {
+  let logs = getLocal<DailyLogEntry[]>('daily_logs', []);
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      let query = supabase.from('daily_logs').select('*').eq('user_id', DEFAULT_USER_ID);
+      if (date) {
+        query = query.eq('date', date);
+      }
+      const { data, error } = await query.order('time', { ascending: true });
+      if (!error && data) {
+        const remoteMap = new Map<string, DailyLogEntry>();
+        data.forEach((l: DailyLogEntry) => remoteMap.set(l.id, l));
+        logs.forEach(l => {
+          if (!remoteMap.has(l.id) && (!date || l.date === date)) {
+            remoteMap.set(l.id, l);
+          }
+        });
+        const merged = Array.from(remoteMap.values());
+        if (date) {
+          const others = logs.filter(l => l.date !== date);
+          logs = [...others, ...data];
+        } else {
+          logs = merged;
+        }
+        setLocal('daily_logs', logs);
+      }
+    } catch (err) {
+      console.warn('Supabase getDailyLogs fallback:', err);
+    }
+  }
+
+  if (date) {
+    logs = logs.filter(l => l.date === date);
+  }
+
+  return logs.sort((a, b) => a.time.localeCompare(b.time));
+}
+
+export async function saveDailyLog(logInput: Omit<DailyLogEntry, 'id'> & { id?: string }): Promise<DailyLogEntry> {
+  const entry: DailyLogEntry = {
+    id: logInput.id || crypto.randomUUID(),
+    user_id: DEFAULT_USER_ID,
+    date: logInput.date,
+    time: logInput.time,
+    timestamp: logInput.timestamp || `${logInput.date}T${logInput.time}:00.000Z`,
+    content: logInput.content.trim(),
+    category: logInput.category || 'general',
+    mood_energy: logInput.mood_energy ?? null,
+    created_at: logInput.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  const allLogs = getLocal<DailyLogEntry[]>('daily_logs', []);
+  const filtered = allLogs.filter(l => l.id !== entry.id);
+  setLocal('daily_logs', [...filtered, entry]);
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabase.from('daily_logs').upsert(entry);
+    } catch (err) {
+      console.warn('Supabase saveDailyLog fallback:', err);
+    }
+  }
+
+  return entry;
+}
+
+export async function deleteDailyLog(id: string): Promise<void> {
+  const allLogs = getLocal<DailyLogEntry[]>('daily_logs', []);
+  setLocal('daily_logs', allLogs.filter(l => l.id !== id));
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabase.from('daily_logs').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Supabase deleteDailyLog fallback:', err);
+    }
+  }
+}
+
+// ----------------- DAILY SUMMARY -----------------
+export async function getDailySummary(date: string): Promise<DailySummary | null> {
+  const summaries = getLocal<DailySummary[]>('daily_summaries', []);
+  let summary = summaries.find(s => s.date === date) || null;
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('daily_summaries')
+        .select('*')
+        .eq('user_id', DEFAULT_USER_ID)
+        .eq('date', date)
+        .maybeSingle();
+
+      if (!error && data) {
+        summary = data;
+        const filtered = summaries.filter(s => s.date !== date);
+        setLocal('daily_summaries', [...filtered, data]);
+      }
+    } catch (err) {
+      console.warn('Supabase getDailySummary fallback:', err);
+    }
+  }
+
+  return summary;
+}
+
+export async function saveDailySummary(summaryInput: Omit<DailySummary, 'id'> & { id?: string }): Promise<DailySummary> {
+  const summary: DailySummary = {
+    id: summaryInput.id || crypto.randomUUID(),
+    user_id: DEFAULT_USER_ID,
+    date: summaryInput.date,
+    key_win: summaryInput.key_win?.trim() || null,
+    lessons_learned: summaryInput.lessons_learned?.trim() || null,
+    day_rating: summaryInput.day_rating ?? null,
+    compiled_digest: summaryInput.compiled_digest || null,
+    created_at: summaryInput.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  const allSummaries = getLocal<DailySummary[]>('daily_summaries', []);
+  const filtered = allSummaries.filter(s => s.date !== summary.date && s.id !== summary.id);
+  setLocal('daily_summaries', [...filtered, summary]);
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabase.from('daily_summaries').upsert(summary);
+    } catch (err) {
+      console.warn('Supabase saveDailySummary fallback:', err);
+    }
+  }
+
+  return summary;
+}
+
 // ----------------- SAMPLE & PREVIEW DATA CONTROLS -----------------
 export async function loadSampleData(): Promise<{ success: boolean; message: string }> {
   try {
@@ -816,6 +955,8 @@ export async function loadSampleData(): Promise<{ success: boolean; message: str
     setLocal('pipeline_contacts', sample.contacts);
     setLocal('pipeline_stages', DEFAULT_PIPELINE_STAGES);
     setLocal('tasks', sample.tasks);
+    setLocal('daily_logs', sample.dailyLogs);
+    setLocal('daily_summaries', sample.dailySummaries);
 
     if (isSupabaseConfigured() && supabase) {
       try {
@@ -829,6 +970,12 @@ export async function loadSampleData(): Promise<{ success: boolean; message: str
         await supabase.from('pipeline_stages').upsert(DEFAULT_PIPELINE_STAGES);
         await supabase.from('pipeline_contacts').upsert(sample.contacts);
         await supabase.from('tasks').upsert(sample.tasks);
+        if (sample.dailyLogs.length > 0) {
+          await supabase.from('daily_logs').upsert(sample.dailyLogs);
+        }
+        if (sample.dailySummaries.length > 0) {
+          await supabase.from('daily_summaries').upsert(sample.dailySummaries);
+        }
       } catch (sbErr) {
         console.warn('Supabase sample data sync error:', sbErr);
       }
@@ -852,6 +999,8 @@ export async function clearAllSampleData(): Promise<{ success: boolean; message:
     setLocal('runs', []);
     setLocal('pipeline_contacts', []);
     setLocal('tasks', []);
+    setLocal('daily_logs', []);
+    setLocal('daily_summaries', []);
 
     if (isSupabaseConfigured() && supabase) {
       try {
@@ -861,6 +1010,8 @@ export async function clearAllSampleData(): Promise<{ success: boolean; message:
         await supabase.from('runs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         await supabase.from('pipeline_contacts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         await supabase.from('tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('daily_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('daily_summaries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       } catch (sbErr) {
         console.warn('Supabase clear error:', sbErr);
       }
@@ -884,6 +1035,8 @@ export async function getAllDataForExport(): Promise<Record<string, unknown>> {
   const pipeline_stages = await getPipelineStages();
   const pipeline_contacts = await getPipelineContacts();
   const tasks = await getTasks();
+  const daily_logs = await getDailyLogs();
+  const daily_summaries = getLocal<DailySummary[]>('daily_summaries', []);
 
   return {
     exported_at: new Date().toISOString(),
@@ -897,5 +1050,7 @@ export async function getAllDataForExport(): Promise<Record<string, unknown>> {
     pipeline_stages,
     pipeline_contacts,
     tasks,
+    daily_logs,
+    daily_summaries,
   };
 }

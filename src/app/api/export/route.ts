@@ -20,6 +20,8 @@ export async function GET() {
         stagesRes,
         contactsRes,
         tasksRes,
+        dailyLogsRes,
+        dailySummariesRes,
       ] = await Promise.all([
         supabaseAdmin.from('habits').select('*'),
         supabaseAdmin.from('habit_logs').select('*'),
@@ -30,6 +32,8 @@ export async function GET() {
         supabaseAdmin.from('pipeline_stages').select('*'),
         supabaseAdmin.from('pipeline_contacts').select('*'),
         supabaseAdmin.from('tasks').select('*'),
+        supabaseAdmin.from('daily_logs').select('*'),
+        supabaseAdmin.from('daily_summaries').select('*'),
       ]);
 
       exportData = {
@@ -44,6 +48,8 @@ export async function GET() {
         pipeline_stages: stagesRes.data || DEFAULT_PIPELINE_STAGES,
         pipeline_contacts: contactsRes.data || [],
         tasks: tasksRes.data || [],
+        daily_logs: dailyLogsRes.data || [],
+        daily_summaries: dailySummariesRes.data || [],
       };
     } else {
       exportData = {
@@ -58,6 +64,8 @@ export async function GET() {
         pipeline_stages: DEFAULT_PIPELINE_STAGES,
         pipeline_contacts: [],
         tasks: [],
+        daily_logs: [],
+        daily_summaries: [],
       };
     }
 

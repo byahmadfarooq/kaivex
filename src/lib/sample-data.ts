@@ -1,4 +1,4 @@
-﻿import { Habit, HabitLog, SleepEntry, NapEntry, Run, PipelineContact, Task } from '../types/index';
+import { Habit, HabitLog, SleepEntry, NapEntry, Run, PipelineContact, Task, DailyLogEntry, DailySummary } from '../types/index';
 import { DEFAULT_USER_ID, DEFAULT_HABITS, DEFAULT_PIPELINE_STAGES } from './constants';
 import { calculateSleepQuality } from './sleep-calc';
 import { DEFAULT_SLEEP_SETTINGS } from './constants';
@@ -360,6 +360,84 @@ export function generateSampleData() {
     },
   ];
 
+  // 6. Daily Micro-Logs & Day Summaries for last 14 days
+  const sampleDailyLogs: DailyLogEntry[] = [];
+  const sampleDailySummaries: DailySummary[] = [];
+
+  const logTemplates = [
+    [
+      { time: '05:15', category: 'wake' as const, content: 'Woke up at 5:15 AM. 500ml water + electrolytes, cold plunge completed.', mood: 5 },
+      { time: '06:00', category: 'activity' as const, content: 'Morning breathwork and 20m mobility routine. Mind feels razor sharp.', mood: 5 },
+      { time: '08:30', category: 'focus' as const, content: 'Deep Work Block 1: Built core infrastructure without notifications.', mood: 5 },
+      { time: '13:00', category: 'meal' as const, content: 'Clean lunch: steak, avocado & sweet potatoes. Slight 20m post-meal dip.', mood: 3 },
+      { time: '15:30', category: 'focus' as const, content: 'Client proposal sprint: closed enterprise pipeline deal.', mood: 5 },
+      { time: '18:15', category: 'activity' as const, content: 'Sunset 5K recovery run, breezy 5:10/km pace.', mood: 4 },
+      { time: '21:30', category: 'reflection' as const, content: 'Screens off. Reading physical book, magnesium & wind-down.', mood: 4 },
+    ],
+    [
+      { time: '05:30', category: 'wake' as const, content: 'Woke up at 5:30 AM feeling refreshed. Zero alarm snooze.', mood: 5 },
+      { time: '08:00', category: 'focus' as const, content: 'Strategic planning session: outlined weekly engineering goals.', mood: 4 },
+      { time: '11:45', category: 'mood' as const, content: 'Energy peak after espresso. Fasting window successfully kept.', mood: 5 },
+      { time: '14:15', category: 'activity' as const, content: 'Quick 20m power walk under the sun to reset circadian rhythm.', mood: 4 },
+      { time: '17:00', category: 'focus' as const, content: 'Cleaned inbox and resolved 3 customer escalations.', mood: 4 },
+      { time: '21:45', category: 'reflection' as const, content: 'Reviewing tomorrow tasks. Room chilled to 67°F for deep sleep.', mood: 4 },
+    ],
+    [
+      { time: '05:45', category: 'wake' as const, content: 'Woke up at 5:45 AM. Mild sleep debt from yesterday, took cold plunge to jolt awake.', mood: 3 },
+      { time: '09:00', category: 'focus' as const, content: 'High priority bug fix completed in record time.', mood: 4 },
+      { time: '13:30', category: 'meal' as const, content: 'Light salad & bone broth lunch. Energy maintained steady.', mood: 4 },
+      { time: '16:00', category: 'mood' as const, content: 'Afternoon mental fatigue, took 15m NSDR meditation session.', mood: 3 },
+      { time: '19:00', category: 'activity' as const, content: 'Zone 2 running session completed. Felt endurance rebound.', mood: 5 },
+      { time: '22:00', category: 'reflection' as const, content: 'Reflecting on execution: solid output despite morning sluggishness.', mood: 4 },
+    ],
+  ];
+
+  const winsTemplates = [
+    'Executed Deep Work blocks with zero distraction and closed critical pipeline opportunity.',
+    'Pushed major feature release to production and maintained seamless fasting protocol.',
+    'Overcame morning fatigue with cold plunge and nailed a 10K endurance training milestone.',
+    'Strategic review completed; eliminated low-leverage tasks to protect morning focus hours.',
+  ];
+
+  const lessonsTemplates = [
+    'Keep heavy meals strictly for the evening to avoid the 1:30 PM post-prandial slump.',
+    'Cold exposure within 20 minutes of waking dramatically accelerates mental alertness.',
+    'NSDR/nap protocol during midday restores 3+ hours of high-focus evening leverage.',
+    'Protect phone-free morning boundary: checking messages before 8 AM ruins focus velocity.',
+  ];
+
+  for (let d = 0; d < 14; d++) {
+    const curDate = dateStr(d);
+    const template = logTemplates[d % logTemplates.length];
+
+    template.forEach((item, idx) => {
+      sampleDailyLogs.push({
+        id: `sample-log-entry-${curDate}-${idx}`,
+        user_id: DEFAULT_USER_ID,
+        date: curDate,
+        time: item.time,
+        timestamp: `${curDate}T${item.time}:00.000Z`,
+        content: item.content,
+        category: item.category,
+        mood_energy: item.mood,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    });
+
+    sampleDailySummaries.push({
+      id: `sample-summary-${curDate}`,
+      user_id: DEFAULT_USER_ID,
+      date: curDate,
+      key_win: winsTemplates[d % winsTemplates.length],
+      lessons_learned: lessonsTemplates[d % lessonsTemplates.length],
+      day_rating: (d % 3 === 0) ? 5 : 4,
+      compiled_digest: template.map(t => `[${t.time}] ${t.content}`).join('\n'),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+  }
+
   return {
     habits,
     habitLogs: sampleHabitLogs,
@@ -368,5 +446,7 @@ export function generateSampleData() {
     runs: sampleRuns,
     contacts: sampleContacts,
     tasks: sampleTasks,
+    dailyLogs: sampleDailyLogs,
+    dailySummaries: sampleDailySummaries,
   };
 }
